@@ -1,10 +1,10 @@
-create table studies(
+create table if not exists studies(
     study_id integer primary key autoincrement,
     study_name varchar(255) not null,
     irb_number varchar(255) not null
 );
 
-create table patients(
+create table if not exists patients(
     patient_id integer primary key autoincrement,
     first_name varchar(255) not null,
     last_name varchar(255) not null,
@@ -13,7 +13,7 @@ create table patients(
     uh_id varchar(255)
 );
 
-create table enrollments(
+create table if not exists enrollments(
     enrollment_id integer primary key autoincrement,
     study_id integer not null,
     patient_id integer not null,
@@ -22,7 +22,7 @@ create table enrollments(
     foreign key (patient_id) references patients(patient_id)
 );
 
-create table accessions(
+create table if not exists accessions(
     accession_id integer primary key autoincrement,
     enrollment_id integer not null,
     accession_date date not null,
@@ -34,7 +34,7 @@ create table accessions(
     foreign key (enrollment_id) references enrollments(enrollment_id)
 );
 
-create table accession_details(
+create table if not exists accession_details(
     accession_detail_id integer primary key autoincrement,
     accession_id integer not null,
     field_name varchar(255),
@@ -42,12 +42,12 @@ create table accession_details(
     foreign key (accession_id) references accessions(accession_id)
 );
 
-create table tube_types(
+create table if not exists tube_types(
     tube_type_id integer primary key autoincrement,
     tube_type_name varchar(255) not null
 );
 
-create table tube_accessions(
+create table if not exists tube_accessions(
     tube_accession_id integer primary key autoincrement,
     tube_type_id integer not null,
     accession_id integer not null,
