@@ -1,5 +1,6 @@
 import customtkinter as ctk
 from database.db import init_db, db_path
+from ui.home import HomeFrame
 
 class App(ctk.CTk):
     def __init__(self):
@@ -10,8 +11,8 @@ class App(ctk.CTk):
         self.create_widgets()
 
     def create_widgets(self):
-        self.label = ctk.CTkLabel(self, text="Welcome to IML Identifier Lab Accession tool!")
-        self.label.pack(pady=20)   
+        self.home_frame = HomeFrame(self)
+       
 
 if __name__ == "__main__":
     app = App()
