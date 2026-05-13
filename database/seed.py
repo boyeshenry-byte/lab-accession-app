@@ -7,10 +7,10 @@ def seed_db(db_path):
         # Insert sample users
         conn.execute("INSERT INTO studies (study_name, irb_number) VALUES (?, ?)", ("Study A", "IRB12345")) 
         conn.execute("INSERT INTO studies (study_name, irb_number) VALUES (?, ?)", ("Study B", "IRB67890"))
-        conn.execute("INSERT INTO patients (first_name, last_name, date_of_birth, ccf_number) VALUES (?, ?, ?, ?)", \
-        ("John", "Doe", "1980-01-01", "CCF001"))
-        conn.execute("INSERT INTO patients (first_name, last_name, date_of_birth, ccf_number) VALUES (?, ?, ?, ?)", \
-        ("Jane", "Doe", "1980-01-01", "CCF002"))
+        conn.execute("INSERT INTO patients (iml_number, first_name, last_name, date_of_birth, ccf_number) VALUES (?, ?, ?, ?, ?)", \
+        ("IML001", "John", "Doe", "1980-01-01", "CCF001"))
+        conn.execute("INSERT INTO patients (iml_number, first_name, last_name, date_of_birth, ccf_number) VALUES (?, ?, ?, ?, ?)", \
+        ("IML002", "Jane", "Doe", "1980-01-01", "CCF002"))
         conn.execute("INSERT INTO enrollments (patient_id, study_id, enrollment_date) VALUES (?, ?, ?)", \
         (1, 1, datetime.now().strftime("%Y-%m-%d")))
         conn.execute("INSERT INTO enrollments (patient_id, study_id, enrollment_date) VALUES (?, ?, ?)", \

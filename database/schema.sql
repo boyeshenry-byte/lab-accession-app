@@ -6,6 +6,7 @@ create table if not exists studies(
 
 create table if not exists patients(
     patient_id integer primary key autoincrement,
+    iml_number varchar(255) not null,
     first_name varchar(255) not null,
     last_name varchar(255) not null,
     date_of_birth date,
