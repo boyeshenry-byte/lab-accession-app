@@ -12,3 +12,10 @@ class NewAccessionFrame(ctk.CTkFrame):
     def create_widgets(self):
         self.label = ctk.CTkLabel(self, text=f"New Accession for {self.study_name}")
         self.label.pack(pady=12, padx=10)
+
+        self.back_button = ctk.CTkButton(self, text="Back to Home", command=self.back_to_home)
+        self.back_button.pack(pady=16, padx=10)
+
+    def back_to_home(self):
+        from ui.home import HomeFrame
+        self.master.show_frame(HomeFrame)
