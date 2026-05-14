@@ -1,5 +1,6 @@
 import customtkinter as ctk
 from database.db import get_db_connection, db_path
+from ui.new_accession import NewAccessionFrame
 
 class HomeFrame(ctk.CTkFrame):
     def __init__(self, master):
@@ -24,8 +25,7 @@ class HomeFrame(ctk.CTkFrame):
                 study = conn.execute("SELECT study_id FROM studies WHERE study_name = ?", (study_name,)).fetchone()
                 conn.close()
                 if study:
-                    #self.master.show_frame(NewAccessionFrame, study_id=study['study_id'], study_name=study_name)
-                    print(f"Study ID: {study['study_id']}, Study Name: {study_name}")
+                    self.master.show_frame(NewAccessionFrame, study_id=study['study_id'], study_name=study_name)
             else:
                 print("Please select a study before creating a new accession.")
 
