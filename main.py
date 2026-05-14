@@ -6,7 +6,7 @@ class App(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("IML Identifier Lab Accession")
-        self.geometry("600x700")
+        self.geometry("800x800")
         init_db(db_path)
         self.current_frame = None
         self.current_study_id = None

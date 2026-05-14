@@ -2,10 +2,8 @@ import customtkinter as ctk
 from database.db import get_db_connection, db_path
 
 class NewAccessionFrame(ctk.CTkFrame):
-    def __init__(self, master, study_id, study_name):
+    def __init__(self, master):
         super().__init__(master)
-        self.study_id = study_id
-        self.study_name = study_name
         self.pack(pady=20, padx=60, fill="both", expand=True)
         self.create_widgets()
 
@@ -13,7 +11,7 @@ class NewAccessionFrame(ctk.CTkFrame):
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=1)
         
-        self.title_label = ctk.CTkLabel(self, text=f"New Accession - {self.study_name}")
+        self.title_label = ctk.CTkLabel(self, text=f"New Accession")
         self.title_label.grid(row=0, column=0, columnspan=2, pady=12, padx=10, sticky="ew")
 
         self.search_label = ctk.CTkLabel(self, text="Search Patient (MRN or IML #)")
@@ -24,10 +22,16 @@ class NewAccessionFrame(ctk.CTkFrame):
         self.search_entry.bind("<Return>", lambda event: self.search_patient())
 
         self.search_button = ctk.CTkButton(self, text="Search", command=self.search_patient)
-        self.search_button.grid(row=2, column=0, columnspan=2, pady=8)
+        self.search_button.grid(row=2, column=1, columnspan=2, pady=8)
 
         self.back_button = ctk.CTkButton(self, text="Back", command=self.back_to_home)
-        self.back_button.grid(row=3, column=0, columnspan=2, pady=8)
+        self.back_button.grid(row=0, column=5, columnspan=2, pady=8)
+
+        self.studies = self.load_studies()
+        self.study_label = ctk.CTkLabel(self, text="Select Study")
+        self.study_label.grid(row=1, column=2, pady=8, padx=10, sticky="e")
+        self.study_optionmenu = ctk.CTkOptionMenu(self, values=self.studies)
+        self.study_optionmenu.grid(row=1, column=3, pady=8, padx=10, sticky="w")
 
     def back_to_home(self):
         from ui.home import HomeFrame
@@ -36,13 +40,38 @@ class NewAccessionFrame(ctk.CTkFrame):
     def search_patient(self):
         search_term = self.search_entry.get().strip()
         if not search_term:
-            print("Please enter an MRN or IML number to search.")
+            print("Search by MRN, IML number, or patient name.")
             return
+
+        terms = search_term.split()
+        conditions = []
+        params = []
+
+        for term in terms:
+            conditions.append("iml_number LIKE ?")
+            conditions.append("ccf_number LIKE ?")
+            conditions.append("uh_id LIKE ?")
+            conditions.append("first_name LIKE ?")
+            conditions.append("last_name LIKE ?")
+            params.extend([f"%{term}%",]*5)
+
+        if len(terms) > 1:
+            conditions.append("(first_name || ' ' || last_name) LIKE ?")
+            params.append(f"%{search_term}%")
+        
         conn = get_db_connection(db_path)
-        patient = conn.execute("SELECT * FROM patients WHERE iml_number LIKE ? OR ccf_number LIKE ?", (f"%{search_term}%", f"%{search_term}%")).fetchone()
+        query = f"SELECT * FROM patients WHERE {' OR '.join(conditions)}"
+        patient = conn.execute(query, params).fetchall()
         conn.close()
 
         if patient:
-            print(f"Patient found: {patient['first_name']} {patient['last_name']} (IML: {patient['iml_number']}, CCF: {patient['ccf_number']})")
+            for p in patient:
+                print(f"Patient found: {p['first_name']} {p['last_name']} (IML: {p['iml_number']}, CCF: {p['ccf_number']})")
         else:
-            print("No patient found with that MRN or IML number.")
+            print("No patient found.")
+
+    def load_studies(self):
+        conn = get_db_connection(db_path)
+        studies = conn.execute("SELECT study_name FROM studies").fetchall()
+        conn.close()
+        return ["Unknown/Pending"] + [study['study_name'] for study in studies]
