@@ -33,6 +33,9 @@ class NewAccessionFrame(ctk.CTkFrame):
         self.study_optionmenu = ctk.CTkOptionMenu(self, values=self.studies)
         self.study_optionmenu.grid(row=1, column=3, pady=8, padx=10, sticky="w")
 
+        self.results_frame = ctk.CTkFrame(self, height=150, width=400)
+        self.results_frame.grid(row=3, column=0, columnspan=4, pady=12, padx=10, sticky="ew")
+
     def back_to_home(self):
         from ui.home import HomeFrame
         self.master.show_frame(HomeFrame)
@@ -64,14 +67,23 @@ class NewAccessionFrame(ctk.CTkFrame):
         patient = conn.execute(query, params).fetchall()
         conn.close()
 
+        for widget in self.results_frame.winfo_children():
+            widget.destroy()
+
         if patient:
             for p in patient:
-                print(f"Patient found: {p['first_name']} {p['last_name']} (IML: {p['iml_number']}, CCF: {p['ccf_number']})")
+                label_text = f"{p['first_name']} {p['last_name']} | IML: {p['iml_number']} | CCF: {p['ccf_number']}"
+                btn = ctk.CTkButton(self.results_frame, text=label_text, command=lambda pt=p: self.select_patient(pt))
+                btn.pack(pady=4, padx=4, fill="x")
         else:
-            print("No patient found.")
+            no_results_label = ctk.CTkLabel(self.results_frame, text="No patients found.")
+            no_results_label.pack(pady=4, padx=4)
 
     def load_studies(self):
         conn = get_db_connection(db_path)
         studies = conn.execute("SELECT study_name FROM studies").fetchall()
         conn.close()
         return ["Unknown/Pending"] + [study['study_name'] for study in studies]
+
+    def select_patient(self, patient):
+        print(f"Selected patient: {patient['first_name']} {patient['last_name']} (IML: {patient['iml_number']})")
