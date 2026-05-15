@@ -30,9 +30,10 @@ create table if not exists accessions(
     timepoint varchar(255),
     disease_type varchar(255),
     freezer_id varchar(255),
-    tech_name varchar(255),
+    tech_id integer,
     notes text,
-    foreign key (enrollment_id) references enrollments(enrollment_id)
+    foreign key (enrollment_id) references enrollments(enrollment_id),
+    foreign key (tech_id) references techs(tech_id)
 );
 
 create table if not exists accession_details(
@@ -55,4 +56,9 @@ create table if not exists tube_accessions(
     quantity integer,
     foreign key (accession_id) references accessions(accession_id),
     foreign key (tube_type_id) references tube_types(tube_type_id)
+);
+
+create table if not exists techs(
+    tech_id integer primary key autoincrement,
+    tech_initials varchar(255) not null
 );

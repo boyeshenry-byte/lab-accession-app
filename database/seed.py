@@ -16,10 +16,10 @@ def seed_db(db_path):
         conn.execute("INSERT INTO enrollments (patient_id, study_id, enrollment_date) VALUES (?, ?, ?)", \
         (2, 2, datetime.now().strftime("%Y-%m-%d")))
         conn.execute("""INSERT INTO accessions (enrollment_id, accession_date, timepoint, disease_type, freezer_id,
-        tech_name) VALUES (?, ?, ?, ?, ?, ?)""", \
+        tech_id) VALUES (?, ?, ?, ?, ?, ?)""", \
         (1, datetime.now().strftime("%Y-%m-%d"), "Baseline", "Disease A", "Freezer 1", "Tech A"))
         conn.execute("""INSERT INTO accessions (enrollment_id, accession_date, timepoint, disease_type, freezer_id,
-        tech_name) VALUES (?, ?, ?, ?, ?, ?)""", \
+        tech_id) VALUES (?, ?, ?, ?, ?, ?)""", \
         (2, datetime.now().strftime("%Y-%m-%d"), "Baseline", "Disease B", "Freezer 1", "Tech B"))
         conn.execute("INSERT INTO accession_details (accession_id, field_name, field_value) VALUES (?, ?, ?)", \
         (1, "Sample Type", "Blood"))
@@ -33,6 +33,7 @@ def seed_db(db_path):
         conn.execute("INSERT INTO tube_types (tube_type_name) VALUES (?)", ("Other",))
         conn.execute("INSERT INTO tube_accessions (accession_id, tube_type_id, quantity) VALUES (?, ?, ?)", \
         (1, 1, 1))
+        conn.execute("INSERT INTO techs (tech_initials) VALUES (?)", ("TA",))
     conn.close()
 
 if __name__ == '__main__':
