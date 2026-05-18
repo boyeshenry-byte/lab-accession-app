@@ -1,10 +1,9 @@
-from secrets import choice
-
 import customtkinter as ctk
 from database.db import get_db_connection, db_path
 from datetime import datetime, date
 import sqlite3
 from CTkMessagebox import CTkMessagebox
+from ui.add_study_dialog import AddStudyDialog
 
 class NewAccessionFrame(ctk.CTkScrollableFrame):
     def __init__(self, master):
@@ -38,7 +37,7 @@ class NewAccessionFrame(ctk.CTkScrollableFrame):
         self.studies = self.load_studies()
         self.study_label = ctk.CTkLabel(self, text="Select Study")
         self.study_label.grid(row=1, column=3, pady=8, padx=10, sticky="e")
-        self.study_optionmenu = ctk.CTkComboBox(self, values=self.studies)
+        self.study_optionmenu = ctk.CTkComboBox(self, values=self.studies, command=self.on_study_selected)
         self.study_optionmenu.grid(row=1, column=4, pady=8, padx=10, sticky="w")
 
         self.results_frame = ctk.CTkFrame(self, height=150, width=400)
@@ -48,6 +47,8 @@ class NewAccessionFrame(ctk.CTkScrollableFrame):
         self.accession_frame.grid(row=6, column=0, columnspan=6, pady=12, padx=10, sticky="ew")
         self.accession_frame.columnconfigure(0, weight=1)
         self.accession_frame.columnconfigure(1, weight=1)
+
+        
 
     def back_to_home(self):
         from ui.home import HomeFrame
@@ -96,7 +97,7 @@ class NewAccessionFrame(ctk.CTkScrollableFrame):
         conn = get_db_connection(db_path)
         studies = conn.execute("SELECT study_name FROM studies").fetchall()
         conn.close()
-        return ["Unknown/Pending"] + [study['study_name'] for study in studies]
+        return ["Unknown/Pending"] + [study['study_name'] for study in studies] + ["Add New Study"]
 
     def select_patient(self, patient):
         self.selected_patient = patient
@@ -346,7 +347,7 @@ class NewAccessionFrame(ctk.CTkScrollableFrame):
         # Study
         self.new_study_label = ctk.CTkLabel(self.accession_frame, text="Study (if known)")
         self.new_study_label.grid(row=6, column=0, pady=8, padx=10, sticky="e")
-        self.new_study_optionmenu = ctk.CTkOptionMenu(self.accession_frame, values=self.load_studies())
+        self.new_study_optionmenu = ctk.CTkComboBox(self.accession_frame, values=self.load_studies())
         self.new_study_optionmenu.grid(row=6, column=1, pady=8, padx=10, sticky="w")
 
         self.save_patient_button = ctk.CTkButton(self.accession_frame, text="Save Patient", command=self.save_new_patient)
@@ -406,6 +407,14 @@ class NewAccessionFrame(ctk.CTkScrollableFrame):
             "SELECT * FROM patients WHERE patient_id = ?", (patient_id,)
         ).fetchone()
         conn.close()
-        self.select_patient(new_patient)
-        self.after(200, lambda: self.select_patient(new_patient)) 
+        self.after(50, lambda: self.select_patient(new_patient)) 
         CTkMessagebox(title="Success", message=f"Patient {first_name} {last_name} added successfully.", icon="check")
+
+    def on_study_selected(self, choice):
+        if choice == "Add New Study":
+            AddStudyDialog(self, on_save=self.on_new_study_saved)
+
+    def on_new_study_saved(self, study_name):
+        self.studies = self.load_studies()
+        self.study_optionmenu.configure(values=self.studies)
+        self.study_optionmenu.set(study_name)
