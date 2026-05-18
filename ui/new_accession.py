@@ -27,13 +27,16 @@ class NewAccessionFrame(ctk.CTkFrame):
         self.search_button = ctk.CTkButton(self, text="Search", command=self.search_patient)
         self.search_button.grid(row=2, column=1, columnspan=2, pady=8)
 
+        self.add_patient_button = ctk.CTkButton(self, text="Add Patient", command=self.show_add_patient_form)
+        self.add_patient_button.grid(row=2, column=3, pady=8)
+
         self.back_button = ctk.CTkButton(self, text="Back", command=self.back_to_home)
         self.back_button.grid(row=0, column=5, columnspan=2, pady=8)
 
         self.studies = self.load_studies()
         self.study_label = ctk.CTkLabel(self, text="Select Study")
         self.study_label.grid(row=1, column=3, pady=8, padx=10, sticky="e")
-        self.study_optionmenu = ctk.CTkOptionMenu(self, values=self.studies)
+        self.study_optionmenu = ctk.CTkComboBox(self, values=self.studies)
         self.study_optionmenu.grid(row=1, column=4, pady=8, padx=10, sticky="w")
 
         self.results_frame = ctk.CTkFrame(self, height=150, width=400)
@@ -140,6 +143,9 @@ class NewAccessionFrame(ctk.CTkFrame):
         self.add_tube_button = ctk.CTkButton(self.accession_frame, text="Add Tube", command=self.add_tube_row)
         self.add_tube_button.grid(row=6, column=1, pady=8, padx=10, sticky="w")
 
+        self.save_button = ctk.CTkButton(self.accession_frame, text="Save Accession", command=self.save_accession)
+        self.save_button.grid(row=100, column=0, columnspan=4, pady=16, padx=10)
+
     def load_techs(self):
         conn = get_db_connection(db_path)
         techs = conn.execute("SELECT tech_initials FROM techs").fetchall()
@@ -181,14 +187,20 @@ class NewAccessionFrame(ctk.CTkFrame):
 
    
     def on_tube_selected(self, choice, row):
+        row_idx = row - 7
+        tube_dropdown, quantity_entry, other_entry = self.tube_rows[row_idx]
+        
+        if other_entry:
+            other_entry.destroy()
+            
         if choice == "Other":
-            self.tube_other_entry = ctk.CTkEntry(self.accession_frame, width=200, placeholder_text="Enter tube type")
-            self.tube_other_entry.grid(row=row, column=3, pady=8, padx=10, sticky="w")
-            self.tube_other_entry.bind("<Return>", self.add_new_tube)
-            self.tube_other_entry.bind("<FocusOut>", self.add_new_tube)
+            new_other = ctk.CTkEntry(self.accession_frame, width=200, placeholder_text="Enter tube type")
+            new_other.grid(row=row, column=3, pady=8, padx=10, sticky="w")
+            new_other.bind("<Return>", self.add_new_tube)
+            new_other.bind("<FocusOut>", self.add_new_tube)
+            self.tube_rows[row_idx] = (tube_dropdown, quantity_entry, new_other)
         else:
-            if hasattr(self, 'tube_other_entry'):
-                self.tube_other_entry.destroy()
+            self.tube_rows[row_idx] = (tube_dropdown, quantity_entry, None)
 
     def add_new_tube(self, event=None):
         new_tube = self.tube_other_entry.get().strip()
@@ -210,4 +222,140 @@ class NewAccessionFrame(ctk.CTkFrame):
         tube_dropdown.grid(row=row_index, column=1, pady=8, padx=10, sticky="w")
         quantity_entry = ctk.CTkEntry(self.accession_frame, width=100, placeholder_text="Quantity")
         quantity_entry.grid(row=row_index, column=2, pady=8, padx=10, sticky="w")
-        self.tube_rows.append((tube_dropdown, quantity_entry))
+        self.tube_rows.append((tube_dropdown, quantity_entry, None))
+
+    def save_accession(self):
+        if not self.tech_dropdown.get() or self.tech_dropdown.get() == "Other":
+            print("Tech initials required.")
+            return
+        if not self.tube_rows:
+            print("At least one tube is required.")
+            return
+
+        study_name = self.study_optionmenu.get()
+        study_id = None
+
+        if study_name != "Unknown/Pending":
+            conn = get_db_connection(db_path)
+            study = conn.execute("SELECT study_id FROM studies WHERE study_name = ?", (study_name,)).fetchone()
+            conn.close()
+            if study:
+                study_id = study['study_id']
+
+        patient_id = self.selected_patient['patient_id']
+        conn = get_db_connection(db_path)
+        with conn:
+            enrollment = conn.execute(
+                "SELECT enrollment_id FROM enrollments WHERE patient_id = ? AND study_id = ?",
+                (patient_id, study_id)
+            ).fetchone()
+            
+            if not enrollment:
+                conn.execute(
+                    "INSERT INTO enrollments (patient_id, study_id, enrollment_date) VALUES (?, ?, ?)",
+                    (patient_id, study_id, date.today().strftime("%Y-%m-%d"))
+                )
+                enrollment_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+            else:
+                enrollment_id = enrollment['enrollment_id']
+
+    def show_add_patient_form(self):
+        for widget in self.accession_frame.winfo_children():
+            widget.destroy()
+        
+        # First Name
+        self.new_first_name_label = ctk.CTkLabel(self.accession_frame, text="First Name", wraplength=600, anchor="w")
+        self.new_first_name_label.grid(row=0, column=0, columnspan=6, pady=8, padx=10, sticky="ew")
+        self.new_first_name_entry = ctk.CTkEntry(self.accession_frame, width=200, placeholder_text="First Name")
+        self.new_first_name_entry.grid(row=0, column=1, pady=8, padx=10, sticky="w")
+
+        # Last Name
+        self.new_last_name_label = ctk.CTkLabel(self.accession_frame, text="Last Name", wraplength=600, anchor="w")
+        self.new_last_name_label.grid(row=1, column=0, columnspan=6, pady=8, padx=10, sticky="ew")
+        self.new_last_name_entry = ctk.CTkEntry(self.accession_frame, width=200, placeholder_text="Last Name")
+        self.new_last_name_entry.grid(row=1, column=1, pady=8, padx=10, sticky="w")
+
+        # IML Number
+        self.new_iml_num_label = ctk.CTkLabel(self.accession_frame, text="IML Number", wraplength=600, anchor="w")
+        self.new_iml_num_label.grid(row=2, column=0, columnspan=6, pady=8, padx=10, sticky="ew")
+        self.new_iml_num_entry = ctk.CTkEntry(self.accession_frame, width=200, placeholder_text="IML Number")
+        self.new_iml_num_entry.grid(row=2, column=1, pady=8, padx=10, sticky="w")
+
+        # CCF Number
+        self.new_ccf_num_label = ctk.CTkLabel(self.accession_frame, text="CCF Number", wraplength=600, anchor="w")
+        self.new_ccf_num_label.grid(row=3, column=0, columnspan=6, pady=8, padx=10, sticky="ew")
+        self.new_ccf_num_entry = ctk.CTkEntry(self.accession_frame, width=200, placeholder_text="CCF Number")
+        self.new_ccf_num_entry.grid(row=3, column=1, pady=8, padx=10, sticky="w")
+
+        # UH ID
+        self.new_uh_id_label = ctk.CTkLabel(self.accession_frame, text="UH ID", wraplength=600, anchor="w")
+        self.new_uh_id_label.grid(row=4, column=0, columnspan=6, pady=8, padx=10, sticky="ew")
+        self.new_uh_id_entry = ctk.CTkEntry(self.accession_frame, width=200, placeholder_text="UH ID")
+        self.new_uh_id_entry.grid(row=4, column=1, pady=8, padx=10, sticky="w")
+
+        # Date of Birth
+        self.new_dob_label = ctk.CTkLabel(self.accession_frame, text="Date of Birth (YYYY-MM-DD)", wraplength=600, anchor="w")
+        self.new_dob_label.grid(row=5, column=0, columnspan=6, pady=8, padx=10, sticky="ew")
+        self.new_dob_entry = ctk.CTkEntry(self.accession_frame, width=200, placeholder_text="Date of Birth (YYYY-MM-DD)")
+        self.new_dob_entry.grid(row=5   , column=1, pady=8, padx=10, sticky="w")
+
+        # Study
+        self.new_study_label = ctk.CTkLabel(self.accession_frame, text="Study (if known)")
+        self.new_study_label.grid(row=6, column=0, pady=8, padx=10, sticky="e")
+        self.new_study_optionmenu = ctk.CTkOptionMenu(self.accession_frame, values=self.load_studies())
+        self.new_study_optionmenu.grid(row=6, column=1, pady=8, padx=10, sticky="w")
+
+        self.save_patient_button = ctk.CTkButton(self.accession_frame, text="Save Patient", command=self.save_new_patient)
+        self.save_patient_button.grid(row=100, column=0, columnspan=4, pady=16, padx=10)
+
+    def save_new_patient(self):
+        first_name = self.new_first_name_entry.get().strip()
+        last_name = self.new_last_name_entry.get().strip()
+        iml_number = self.new_iml_num_entry.get().strip()
+        ccf_number = self.new_ccf_num_entry.get().strip()
+        uh_id = self.new_uh_id_entry.get().strip()
+        dob_str = self.new_dob_entry.get().strip()
+        study_name = self.new_study_optionmenu.get()
+
+        if not first_name or not last_name or not iml_number:
+            print("First, last name, and IML number are required.")
+            return
+
+        dob = None
+        if dob_str:
+            try:
+                dob = datetime.strptime(dob_str, "%Y-%m-%d").date()
+            except ValueError:
+                print("Invalid date format. Use YYYY-MM-DD.")
+                return
+
+        study_id = None
+        if study_name != "Unknown/Pending":
+            conn = get_db_connection(db_path)
+            study = conn.execute("SELECT study_id FROM studies WHERE study_name = ?", (study_name,)).fetchone()
+            conn.close()
+            if study:
+                study_id = study['study_id']
+
+        conn = get_db_connection(db_path)
+        with conn:
+            conn.execute(
+                "INSERT INTO patients (first_name, last_name, iml_number, ccf_number, uh_id, date_of_birth) \
+                VALUES (?, ?, ?, ?, ?, ?)",
+                (first_name, last_name, iml_number, ccf_number, uh_id, dob_str if dob else None)
+            )
+            patient_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+
+            if study_id:
+                conn.execute(
+                    "INSERT INTO enrollments (patient_id, study_id, enrollment_date) VALUES (?, ?, ?)",
+                    (patient_id, study_id, date.today().strftime("%Y-%m-%d"))
+                )
+        conn = get_db_connection(db_path)
+        new_patient = conn.execute(
+            "SELECT * FROM patients WHERE patient_id = ?", (patient_id,)
+        ).fetchone()
+        conn.close()
+        self.select_patient(new_patient)
+        self.after(200, lambda: self.select_patient(new_patient)) 
+        print(f"Patient {first_name} {last_name} added successfully.")

@@ -16,7 +16,7 @@ create table if not exists patients(
 
 create table if not exists enrollments(
     enrollment_id integer primary key autoincrement,
-    study_id integer not null,
+    study_id integer,
     patient_id integer not null,
     enrollment_date date,
     foreign key (study_id) references studies(study_id),
