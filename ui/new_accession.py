@@ -3,6 +3,8 @@ from secrets import choice
 import customtkinter as ctk
 from database.db import get_db_connection, db_path
 from datetime import datetime, date
+import sqlite3
+from CTkMessagebox import CTkMessagebox
 
 class NewAccessionFrame(ctk.CTkFrame):
     def __init__(self, master):
@@ -126,7 +128,7 @@ class NewAccessionFrame(ctk.CTkFrame):
         # Tech Initials
         self.tech_label = ctk.CTkLabel(self.accession_frame, text="Tech Initials")
         self.tech_label.grid(row=4, column=0, pady=8, padx=10, sticky="e")
-        self.tech_dropdown = ctk.CTkOptionMenu(self.accession_frame, values=self.load_techs(),\
+        self.tech_dropdown = ctk.CTkComboBox(self.accession_frame, values=self.load_techs(),\
                                                 command=self.on_tech_selected, width=200)
         self.tech_dropdown.grid(row=4, column=1, pady=8, padx=10, sticky="w")
 
@@ -217,7 +219,7 @@ class NewAccessionFrame(ctk.CTkFrame):
 
     def add_tube_row(self):
         row_index = len(self.tube_rows) + 7
-        tube_dropdown = ctk.CTkOptionMenu(self.accession_frame, values=self.load_tubes(),
+        tube_dropdown = ctk.CTkComboBox(self.accession_frame, values=self.load_tubes(),
                                     command=lambda choice, r=row_index: self.on_tube_selected(choice, r), width=150)
         tube_dropdown.grid(row=row_index, column=1, pady=8, padx=10, sticky="w")
         quantity_entry = ctk.CTkEntry(self.accession_frame, width=100, placeholder_text="Quantity")
@@ -339,11 +341,17 @@ class NewAccessionFrame(ctk.CTkFrame):
 
         conn = get_db_connection(db_path)
         with conn:
-            conn.execute(
-                "INSERT INTO patients (first_name, last_name, iml_number, ccf_number, uh_id, date_of_birth) \
-                VALUES (?, ?, ?, ?, ?, ?)",
-                (first_name, last_name, iml_number, ccf_number, uh_id, dob_str if dob else None)
-            )
+            try:
+                conn.execute(
+                    "INSERT INTO patients (first_name, last_name, iml_number, ccf_number, uh_id, date_of_birth) \
+                    VALUES (?, ?, ?, ?, ?, ?)",
+                    (first_name, last_name, iml_number, ccf_number, uh_id, dob_str if dob else None)
+                )
+            except sqlite3.IntegrityError:
+                CTkMessagebox(title="Error", 
+                              message="IML Number must be unique. A patient with this IML number already exists.", 
+                              icon="cancel")
+                return
             patient_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
 
             if study_id:
