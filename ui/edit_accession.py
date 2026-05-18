@@ -4,10 +4,10 @@ import sqlite3
 from ui.add_study_dialog import AddStudyDialog
 from CTkMessagebox import CTkMessagebox
 
-class EditAccessionFrame(ctk.CTkScrollableFrame):
+class EditAccessionFrame(ctk.CTkFrame):
     def __init__(self, master, accession_id):
         super().__init__(master)
-        self.pack(pady=20, padx=60, fill="both", expand=True)
+        self.pack(fill="both", expand=True)
         self.accession_id = accession_id
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=1)
@@ -37,37 +37,42 @@ class EditAccessionFrame(ctk.CTkScrollableFrame):
             self.master.show_frame(HomeFrame)
             return
         
-        self.title_label = ctk.CTkLabel(self, text=f"Edit Accession #{self.accession_id}", font=ctk.CTkFont(size=20, weight="bold"))
+        for i in range(4):
+            self.columnconfigure(i, weight=1)
+        
+        self.title_label = ctk.CTkLabel(self, text=f"Edit Accession", font=ctk.CTkFont(size=20, weight="bold"))
         self.title_label.grid(row=0, column=0, columnspan=2, pady=12)
+        self.patient_info_label = ctk.CTkLabel(self, text=f"Patient: {accession['first_name']} {accession['last_name']} (IML: {accession['iml_number']}, CCF: {accession['ccf_number']})")
+        self.patient_info_label.grid(row=1, column=0, columnspan=2, pady=8)
 
         self.freezer_id_label = ctk.CTkLabel(self, text="Freezer ID:")
-        self.freezer_id_label.grid(row=1, column=0, pady=8, padx=10, sticky="e")
+        self.freezer_id_label.grid(row=2, column=0, pady=8, padx=10, sticky="e")
         self.freezer_id_entry = ctk.CTkEntry(self, width=200)
-        self.freezer_id_entry.grid(row=1, column=1, pady=8, padx=10, sticky="w")
+        self.freezer_id_entry.grid(row=2, column=1, pady=8, padx=10, sticky="w")
         self.freezer_id_entry.insert(0, accession['freezer_id'] if accession['freezer_id'] else "")
 
-        self.tech_label = ctk.CTkLabel(self, text="Technician:")
-        self.tech_label.grid(row=2, column=0, pady=8, padx=10, sticky="e")
-        self.tech_entry = ctk.CTkEntry(self, width=200)
-        self.tech_entry.grid(row=2, column=1, pady=8, padx=10, sticky="w")
-        self.tech_entry.insert(0, accession['tech_initials'] if accession['tech_initials'] else "")
+        self.tech_dropdown_label = ctk.CTkLabel(self, text="Technician:")
+        self.tech_dropdown_label.grid(row=3, column=0, pady=8, padx=10, sticky="e")
+        self.tech_dropdown = ctk.CTkComboBox(self, values=self.load_techs())
+        self.tech_dropdown.grid(row=3, column=1, pady=8, padx=10, sticky="w")
+        self.tech_dropdown.set(accession['tech_initials'] if accession['tech_initials'] else "Select Technician")
 
         self.disease_type_label = ctk.CTkLabel(self, text="Disease Type:")
-        self.disease_type_label.grid(row=3, column=0, pady=8, padx=10, sticky="e")
+        self.disease_type_label.grid(row=4, column=0, pady=8, padx=10, sticky="e")
         self.disease_type_entry = ctk.CTkEntry(self, width=200)
-        self.disease_type_entry.grid(row=3, column=1, pady=8, padx=10, sticky="w")
+        self.disease_type_entry.grid(row=4, column=1, pady=8, padx=10, sticky="w")
         self.disease_type_entry.insert(0, accession['disease_type'] if accession['disease_type'] else "")
 
         self.timepoint_label = ctk.CTkLabel(self, text="Timepoint:")
-        self.timepoint_label.grid(row=4, column=0, pady=8, padx=10, sticky="e")
+        self.timepoint_label.grid(row=5, column=0, pady=8, padx=10, sticky="e")
         self.timepoint_entry = ctk.CTkEntry(self, width=200)
-        self.timepoint_entry.grid(row=4, column=1, pady=8, padx=10, sticky="w")
+        self.timepoint_entry.grid(row=5, column=1, pady=8, padx=10, sticky="w")
         self.timepoint_entry.insert(0, accession['timepoint'] if accession['timepoint'] else "")
 
         self.notes_label = ctk.CTkLabel(self, text="Notes:")
-        self.notes_label.grid(row=5, column=0, pady=8, padx=10, sticky="ne")
+        self.notes_label.grid(row=6, column=0, pady=8, padx=10, sticky="ne")
         self.notes_text = ctk.CTkTextbox(self, width=400, height=200)
-        self.notes_text.grid(row=5, column=1, pady=8, padx=10, sticky="w")
+        self.notes_text.grid(row=6, column=1, pady=8, padx=10, sticky="w")
         self.notes_text.insert("0.0", accession['notes'] if accession['notes'] else "")
 
         # Add a Save button to save changes
@@ -103,12 +108,27 @@ class EditAccessionFrame(ctk.CTkScrollableFrame):
         conn.close()
 
         CTkMessagebox(title="Success", message="Accession updated successfully.", icon="check")
-        self.master.master.show_frame(HomeFrame)
+        self.get_app().show_frame(HomeFrame)
 
     def open_edit(self, accession_id):
         from ui.edit_accession import EditAccessionFrame
         self.master.master.master.show_frame(EditAccessionFrame, accession_id=accession_id)
 
+    def get_app(self):
+        widget = self
+        while widget is not None:
+            if hasattr(widget, 'show_frame'):
+                return widget
+            widget = widget.master
+        return None
+
     def go_back(self):
         from ui.search_accession import SearchAccessionFrame
         self.get_app().show_frame(SearchAccessionFrame)
+
+    def load_techs(self):
+        conn = get_db_connection(db_path)
+        with conn:
+            techs = conn.execute("SELECT tech_initials FROM techs").fetchall()
+        conn.close()
+        return [tech['tech_initials'] for tech in techs]

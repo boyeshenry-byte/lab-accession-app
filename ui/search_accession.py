@@ -4,7 +4,7 @@ import sqlite3
 from ui.add_study_dialog import AddStudyDialog
 from CTkMessagebox import CTkMessagebox
 
-class SearchAccessionFrame(ctk.CTkScrollableFrame):
+class SearchAccessionFrame(ctk.CTkFrame):
     def __init__(self, master):
         super().__init__(master)
         self.pack(pady=20, padx=60, fill="both", expand=True)
@@ -120,10 +120,6 @@ class SearchAccessionFrame(ctk.CTkScrollableFrame):
 )
             result_button.grid(row=5+idx, column=0, columnspan=3, pady=4, sticky='ew')
 
-    def open_edit(self, accession_id):
-        from ui.edit_accession import EditAccessionFrame
-        self.master.master.master.show_frame(EditAccessionFrame, accession_id=accession_id)
-
     def get_app(self):
         widget = self
         while widget is not None:
@@ -131,3 +127,7 @@ class SearchAccessionFrame(ctk.CTkScrollableFrame):
                 return widget
             widget = widget.master
         return None
+
+    def open_edit(self, accession_id):
+        from ui.edit_accession import EditAccessionFrame
+        self.get_app().show_frame(EditAccessionFrame, accession_id=accession_id)

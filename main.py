@@ -16,6 +16,8 @@ class App(ctk.CTk):
     def show_frame(self, frame_class, **kwargs):
         if hasattr(self, 'current_frame') and self.current_frame:
             self.current_frame.destroy()
+            self.current_frame = None
+            self.update()
         self.current_frame = frame_class(self, **kwargs)
 
 if __name__ == "__main__":
