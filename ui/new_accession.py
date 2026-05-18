@@ -1,3 +1,5 @@
+from secrets import choice
+
 import customtkinter as ctk
 from database.db import get_db_connection, db_path
 from datetime import datetime, date
@@ -121,8 +123,9 @@ class NewAccessionFrame(ctk.CTkFrame):
         # Tech Initials
         self.tech_label = ctk.CTkLabel(self.accession_frame, text="Tech Initials")
         self.tech_label.grid(row=4, column=0, pady=8, padx=10, sticky="e")
-        self.tech_entry = ctk.CTkEntry(self.accession_frame, width=200)
-        self.tech_entry.grid(row=4, column=1, pady=8, padx=10, sticky="w")
+        self.tech_dropdown = ctk.CTkOptionMenu(self.accession_frame, values=self.load_techs(),\
+                                                command=self.on_tech_selected, width=200)
+        self.tech_dropdown.grid(row=4, column=1, pady=8, padx=10, sticky="w")
 
         # Freezer ID
         self.freezer_label = ctk.CTkLabel(self.accession_frame, text="Freezer ID")
@@ -130,3 +133,32 @@ class NewAccessionFrame(ctk.CTkFrame):
         self.freezer_entry = ctk.CTkEntry(self.accession_frame, width=200)
         self.freezer_entry.grid(row=5, column=1, pady=8, padx=10, sticky="w")
 
+    def load_techs(self):
+        conn = get_db_connection(db_path)
+        techs = conn.execute("SELECT tech_initials FROM techs").fetchall()
+        conn.close()
+        return [tech['tech_initials'] for tech in techs] + ["Other"]
+    
+    def on_tech_selected(self, choice):
+        if choice == "Other":
+            self.tech_other_entry = ctk.CTkEntry(self.accession_frame, width=200, placeholder_text="Enter initials")
+            self.tech_other_entry.grid(row=4, column=2, pady=8, padx=10, sticky="w")
+            self.tech_other_entry.bind("<Return>", self.add_new_tech)
+            self.tech_other_entry.bind("<FocusOut>", self.add_new_tech)
+        else:
+            if hasattr(self, 'tech_other_entry'):
+                self.tech_other_entry.destroy()
+        
+
+    def add_new_tech(self, event=None):
+        new_initials = self.tech_other_entry.get().strip().upper()
+        if not new_initials:
+            return
+        conn = get_db_connection(db_path)
+        with conn:
+            conn.execute("INSERT OR IGNORE INTO techs (tech_initials) VALUES (?)", (new_initials,))
+        conn.close()
+        updated_techs = self.load_techs()
+        self.tech_dropdown.configure(values=updated_techs)
+        self.tech_dropdown.set(new_initials)
+        self.tech_other_entry.destroy()
