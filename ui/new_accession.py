@@ -56,7 +56,7 @@ class NewAccessionFrame(ctk.CTkFrame):
     def search_patient(self):
         search_term = self.search_entry.get().strip()
         if not search_term:
-            print("Search by MRN, IML number, or patient name.")
+            CTkMessagebox(title="Error", message="Search by MRN, IML number, or patient name.", icon="cancel")
             return
 
         terms = search_term.split()
@@ -228,10 +228,10 @@ class NewAccessionFrame(ctk.CTkFrame):
 
     def save_accession(self):
         if not self.tech_dropdown.get() or self.tech_dropdown.get() == "Other":
-            print("Tech initials required.")
+            CTkMessagebox(title="Error", message="Tech initials required.", icon="cancel")
             return
         if not self.tube_rows:
-            print("At least one tube is required.")
+            CTkMessagebox(title="Error", message="At least one tube is required.", icon="cancel")
             return
 
         study_name = self.study_optionmenu.get()
@@ -260,6 +260,48 @@ class NewAccessionFrame(ctk.CTkFrame):
                 enrollment_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
             else:
                 enrollment_id = enrollment['enrollment_id']
+            
+            # Look up tech_id
+            tech_initials = self.tech_dropdown.get()
+            tech = conn.execute("SELECT tech_id FROM techs WHERE tech_initials = ?", (tech_initials,)).fetchone()
+            tech_id = tech['tech_id'] if tech else None
+
+            # Insert accession
+            conn.execute(
+                """INSERT INTO accessions 
+                (enrollment_id, accession_date, timepoint, disease_type, freezer_id, tech_id, notes)
+                VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    enrollment_id,
+                    date.today().strftime("%Y-%m-%d"),
+                    self.timepoint_entry.get().strip() or None,
+                    self.disease_entry.get().strip() or None,
+                    self.freezer_entry.get().strip() or None,
+                    tech_id,
+                    None
+                )
+            )
+            accession_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+
+            # Insert tubes
+            for tube_dropdown, quantity_entry, other_entry in self.tube_rows:
+                tube_name = tube_dropdown.get()
+                quantity = quantity_entry.get().strip()
+                if tube_name and quantity and tube_name != "Other":
+                    tube = conn.execute("SELECT tube_type_id FROM tube_types WHERE tube_type_name = ?", (tube_name,)).fetchone()
+                    if tube:
+                        conn.execute(
+                            "INSERT INTO tube_accessions (accession_id, tube_type_id, quantity) VALUES (?, ?, ?)",
+                            (accession_id, tube['tube_type_id'], int(quantity))
+                        )
+
+        CTkMessagebox(title="Success", message="Accession saved successfully.", icon="check")
+        
+        # Refresh the form for the next accession
+        self.focus_set()
+        for widget in self.accession_frame.winfo_children():
+            widget.destroy()
+        self.tube_rows = []
 
     def show_add_patient_form(self):
         for widget in self.accession_frame.winfo_children():
@@ -320,7 +362,7 @@ class NewAccessionFrame(ctk.CTkFrame):
         study_name = self.new_study_optionmenu.get()
 
         if not first_name or not last_name or not iml_number:
-            print("First, last name, and IML number are required.")
+            CTkMessagebox(title="Error", message="First, last name, and IML number are required.", icon="cancel")
             return
 
         dob = None
@@ -328,7 +370,7 @@ class NewAccessionFrame(ctk.CTkFrame):
             try:
                 dob = datetime.strptime(dob_str, "%Y-%m-%d").date()
             except ValueError:
-                print("Invalid date format. Use YYYY-MM-DD.")
+                CTkMessagebox(title="Error", message="Invalid date format. Use YYYY-MM-DD.", icon="cancel")
                 return
 
         study_id = None
@@ -366,4 +408,4 @@ class NewAccessionFrame(ctk.CTkFrame):
         conn.close()
         self.select_patient(new_patient)
         self.after(200, lambda: self.select_patient(new_patient)) 
-        print(f"Patient {first_name} {last_name} added successfully.")
+        CTkMessagebox(title="Success", message=f"Patient {first_name} {last_name} added successfully.", icon="check")
