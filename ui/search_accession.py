@@ -121,4 +121,13 @@ class SearchAccessionFrame(ctk.CTkScrollableFrame):
             result_button.grid(row=5+idx, column=0, columnspan=3, pady=4, sticky='ew')
 
     def open_edit(self, accession_id):
-        print(f"Opening accession {accession_id}")
+        from ui.edit_accession import EditAccessionFrame
+        self.master.master.master.show_frame(EditAccessionFrame, accession_id=accession_id)
+
+    def get_app(self):
+        widget = self
+        while widget is not None:
+            if hasattr(widget, 'show_frame'):
+                return widget
+            widget = widget.master
+        return None
