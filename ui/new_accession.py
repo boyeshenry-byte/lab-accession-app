@@ -133,6 +133,13 @@ class NewAccessionFrame(ctk.CTkFrame):
         self.freezer_entry = ctk.CTkEntry(self.accession_frame, width=200)
         self.freezer_entry.grid(row=5, column=1, pady=8, padx=10, sticky="w")
 
+        # Tube Type
+        self.tube_rows = []
+        self.tube_label = ctk.CTkLabel(self.accession_frame, text="Tubes")
+        self.tube_label.grid(row=6, column=0, pady=8, padx=10, sticky="e")
+        self.add_tube_button = ctk.CTkButton(self.accession_frame, text="Add Tube", command=self.add_tube_row)
+        self.add_tube_button.grid(row=6, column=1, pady=8, padx=10, sticky="w")
+
     def load_techs(self):
         conn = get_db_connection(db_path)
         techs = conn.execute("SELECT tech_initials FROM techs").fetchall()
@@ -162,3 +169,45 @@ class NewAccessionFrame(ctk.CTkFrame):
         self.tech_dropdown.configure(values=updated_techs)
         self.tech_dropdown.set(new_initials)
         self.tech_other_entry.destroy()
+
+    def load_tubes(self):
+        conn = get_db_connection(db_path)
+        tubes = conn.execute("SELECT tube_type_name FROM tube_types").fetchall()
+        conn.close()
+        tube_names = [tube['tube_type_name'] for tube in tubes]
+        if "Other" in tube_names:
+            tube_names.remove("Other")
+        return tube_names + ["Other"]
+
+   
+    def on_tube_selected(self, choice, row):
+        if choice == "Other":
+            self.tube_other_entry = ctk.CTkEntry(self.accession_frame, width=200, placeholder_text="Enter tube type")
+            self.tube_other_entry.grid(row=row, column=3, pady=8, padx=10, sticky="w")
+            self.tube_other_entry.bind("<Return>", self.add_new_tube)
+            self.tube_other_entry.bind("<FocusOut>", self.add_new_tube)
+        else:
+            if hasattr(self, 'tube_other_entry'):
+                self.tube_other_entry.destroy()
+
+    def add_new_tube(self, event=None):
+        new_tube = self.tube_other_entry.get().strip()
+        if not new_tube:
+            return
+        conn = get_db_connection(db_path)
+        with conn:
+            conn.execute("INSERT OR IGNORE INTO tube_types (tube_type_name) VALUES (?)", (new_tube,))
+        conn.close()
+        updated_tubes = self.load_tubes()
+        self.tube_dropdown.configure(values=updated_tubes)
+        self.tube_dropdown.set(new_tube)
+        self.tube_other_entry.destroy()
+
+    def add_tube_row(self):
+        row_index = len(self.tube_rows) + 7
+        tube_dropdown = ctk.CTkOptionMenu(self.accession_frame, values=self.load_tubes(),
+                                    command=lambda choice, r=row_index: self.on_tube_selected(choice, r), width=150)
+        tube_dropdown.grid(row=row_index, column=1, pady=8, padx=10, sticky="w")
+        quantity_entry = ctk.CTkEntry(self.accession_frame, width=100, placeholder_text="Quantity")
+        quantity_entry.grid(row=row_index, column=2, pady=8, padx=10, sticky="w")
+        self.tube_rows.append((tube_dropdown, quantity_entry))
