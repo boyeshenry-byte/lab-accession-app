@@ -6,7 +6,7 @@ from datetime import datetime, date
 import sqlite3
 from CTkMessagebox import CTkMessagebox
 
-class NewAccessionFrame(ctk.CTkFrame):
+class NewAccessionFrame(ctk.CTkScrollableFrame):
     def __init__(self, master):
         super().__init__(master)
         self.pack(pady=20, padx=60, fill="both", expand=True)
