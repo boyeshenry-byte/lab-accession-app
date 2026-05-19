@@ -48,12 +48,6 @@ class NewAccessionFrame(ctk.CTkScrollableFrame):
         self.accession_frame.columnconfigure(0, weight=1)
         self.accession_frame.columnconfigure(1, weight=1)
 
-        
-
-    def back_to_home(self):
-        from ui.home import HomeFrame
-        self.master.show_frame(HomeFrame)
-
     def search_patient(self):
         search_term = self.search_entry.get().strip()
         if not search_term:
@@ -356,7 +350,7 @@ class NewAccessionFrame(ctk.CTkScrollableFrame):
     def save_new_patient(self):
         first_name = self.new_first_name_entry.get().strip()
         last_name = self.new_last_name_entry.get().strip()
-        iml_number = self.new_iml_num_entry.get().strip()
+        iml_number = self.new_iml_num_entry.get().strip().upper()
         ccf_number = self.new_ccf_num_entry.get().strip()
         uh_id = self.new_uh_id_entry.get().strip()
         dob_str = self.new_dob_entry.get().strip()
@@ -418,3 +412,15 @@ class NewAccessionFrame(ctk.CTkScrollableFrame):
         self.studies = self.load_studies()
         self.study_optionmenu.configure(values=self.studies)
         self.study_optionmenu.set(study_name)
+
+    def get_app(self):
+        widget = self
+        while widget is not None:
+            if hasattr(widget, 'show_frame'):
+                return widget
+            widget = widget.master
+        return None
+
+    def back_to_home(self):
+        from ui.home import HomeFrame
+        self.get_app().show_frame(HomeFrame)
