@@ -1,6 +1,5 @@
 import customtkinter as ctk
 from database.db import get_db_connection, db_path
-from ui.new_accession import NewAccessionFrame
 
 class HomeFrame(ctk.CTkFrame):
     def __init__(self, master):
@@ -9,6 +8,7 @@ class HomeFrame(ctk.CTkFrame):
         self.create_widgets()
 
     def new_accession(self):
+            from ui.new_accession import NewAccessionFrame
             self.master.show_frame(NewAccessionFrame)
 
     def create_widgets(self):
@@ -21,6 +21,13 @@ class HomeFrame(ctk.CTkFrame):
         self.patient_search_button = ctk.CTkButton(self, text="Search/Edit Accessions", command=self.search_accessions)
         self.patient_search_button.pack(pady=16, padx=10)
 
+        self.view_accession_button = ctk.CTkButton(self, text="View Accession Details", command=self.view_accession)
+        self.view_accession_button.pack(pady=16, padx=10)
+
     def search_accessions(self):
         from ui.search_accession import SearchAccessionFrame
         self.master.show_frame(SearchAccessionFrame)
+
+    def view_accession(self):
+        from ui.view import ViewAccessionFrame
+        self.master.show_frame(ViewAccessionFrame)
