@@ -18,7 +18,7 @@ class HomeFrame(ctk.CTkFrame):
         self.new_accession_button = ctk.CTkButton(self, text="New Accession", command=self.new_accession)
         self.new_accession_button.pack(pady=16, padx=10)
 
-        self.patient_search_button = ctk.CTkButton(self, text="Search Accessions", command=self.search_accessions)
+        self.patient_search_button = ctk.CTkButton(self, text="Search/Edit Accessions", command=self.search_accessions)
         self.patient_search_button.pack(pady=16, padx=10)
 
     def search_accessions(self):
