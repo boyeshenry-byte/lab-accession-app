@@ -1,11 +1,12 @@
 import customtkinter as ctk
 from database.db import init_db, db_path
 from ui.home import HomeFrame
+from version import __version__
 
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.title("IML Identifier Lab Accession")
+        self.title(f"IML Identifier Lab Accession v{__version__}")
         self.geometry("1000x800")
         init_db(db_path)
         self.current_frame = None

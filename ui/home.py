@@ -1,5 +1,6 @@
 import customtkinter as ctk
 from database.db import get_db_connection, db_path
+from version import __version__
 
 class HomeFrame(ctk.CTkFrame):
     def __init__(self, master):
@@ -14,7 +15,9 @@ class HomeFrame(ctk.CTkFrame):
     def create_widgets(self):
         self.label = ctk.CTkLabel(self, text="Home")
         self.label.pack(pady=12, padx=10)
-
+        self.version_label = ctk.CTkLabel(self, text=f"v{__version__}", font=ctk.CTkFont(size=10), text_color="gray")
+        self.version_label.pack(side="bottom", anchor="e", pady=10, padx=10)
+        
         self.new_accession_button = ctk.CTkButton(self, text="New Accession", command=self.new_accession)
         self.new_accession_button.pack(pady=16, padx=10)
 
