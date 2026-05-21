@@ -21,7 +21,7 @@ class SearchAccessionFrame(ctk.CTkFrame):
 
     def back_to_home(self):
         from ui.home import HomeFrame
-        self.master.master.show_frame(HomeFrame)
+        self.get_app().show_frame(HomeFrame)
 
     def create_widgets(self):
         self.columnconfigure(0, weight=1)
