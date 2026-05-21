@@ -227,16 +227,28 @@ class ViewAccessionFrame(ctk.CTkFrame):
             self.treeview.insert("", "end", values=tuple(result))
 
     def export_to_excel(self):
-        #vals = []
-        #for row in self.treeview.get_children():
-         #   vals.append(self.treeview.item(row, "values"))
+        file_path = fd.asksaveasfilename(defaultextension=".xlsx", filetypes=[("Excel files", "*.xlsx")])
+        if not file_path:
+            return
+        vals = []
+        for row in self.treeview.get_children():
+            vals.append(self.treeview.item(row, "values"))
 
-        #openpyxl.Workbook()
-        #openpyxl.workbook.active
+        wb = openpyxl.Workbook()
+        ws = wb.active
         
-        #openpyxl.worksheet.append("")\
-        pass
+        ws.append(["Freezer ID", "Last Name", "First Name", "DOB", 
+                   "MRN", "Study", "Accession Date", "Timepoint", "Disease", 
+                   "Tubes", "Tech Initials", "Notes"])
+        
+        for val in vals:
+            ws.append(val)
 
+        
+        if file_path:
+            wb.save(file_path)
+            CTkMessagebox(title="Success", message=f"Data exported to {os.path.basename(file_path)}", icon="check") 
+            
     def load_accession_details(self):
         conn = get_db_connection(db_path)
         with conn:
