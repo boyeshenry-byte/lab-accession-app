@@ -18,7 +18,7 @@ class NewAccessionFrame(ctk.CTkScrollableFrame):
         self.title_label = ctk.CTkLabel(self, text=f"New Accession")
         self.title_label.grid(row=0, column=0, columnspan=2, pady=12, padx=10, sticky="ew")
 
-        self.search_label = ctk.CTkLabel(self, text="Search (MRN, Patient Name or IML #)")
+        self.search_label = ctk.CTkLabel(self, text="Search (MRN, Patient Name or Freezer ID)")
         self.search_label.grid(row=1, column=0, columnspan=2, pady=8, padx=10, sticky="e")
 
         self.search_entry = ctk.CTkEntry(self, width=200)
@@ -51,7 +51,7 @@ class NewAccessionFrame(ctk.CTkScrollableFrame):
     def search_patient(self):
         search_term = self.search_entry.get().strip()
         if not search_term:
-            CTkMessagebox(title="Error", message="Search by MRN, IML number, or patient name.", icon="cancel")
+            CTkMessagebox(title="Error", message="Search by MRN, Freezer ID, or patient name.", icon="cancel")
             return
 
         terms = search_term.split()
@@ -59,11 +59,11 @@ class NewAccessionFrame(ctk.CTkScrollableFrame):
         params = []
 
         for term in terms:
-            conditions.append("iml_number LIKE ?")
             conditions.append("ccf_number LIKE ?")
             conditions.append("uh_id LIKE ?")
             conditions.append("first_name LIKE ?")
             conditions.append("last_name LIKE ?")
+            conditions.append("e.freezer_id LIKE ?")
             params.extend([f"%{term}%",]*5)
 
         if len(terms) > 1:
@@ -71,7 +71,10 @@ class NewAccessionFrame(ctk.CTkScrollableFrame):
             params.append(f"%{search_term}%")
         
         conn = get_db_connection(db_path)
-        query = f"SELECT * FROM patients WHERE {' OR '.join(conditions)}"
+        query = f"""SELECT p.*, e.freezer_id 
+                    FROM patients p
+                    LEFT JOIN enrollments e ON p.patient_id = e.patient_id
+                    WHERE {' OR '.join(conditions)}"""
         patient = conn.execute(query, params).fetchall()
         conn.close()
 
@@ -80,7 +83,7 @@ class NewAccessionFrame(ctk.CTkScrollableFrame):
 
         if patient:
             for p in patient:
-                label_text = f"{p['first_name']} {p['last_name']} | IML: {p['iml_number']} | CCF: {p['ccf_number']}"
+                label_text = f"{p['first_name']} {p['last_name']} | Freezer: {p['freezer_id']} | CCF: {p['ccf_number']}"
                 btn = ctk.CTkButton(self.results_frame, text=label_text, command=lambda pt=p: self.select_patient(pt))
                 btn.pack(pady=4, padx=4, fill="x")
         else:
@@ -97,8 +100,7 @@ class NewAccessionFrame(ctk.CTkScrollableFrame):
         self.selected_patient = patient
         for widget in self.accession_frame.winfo_children():
             widget.destroy()
-        label_text = f"{patient['first_name']} {patient['last_name']} | IML: \
-            {patient['iml_number']} | CCF: {patient['ccf_number']}"
+        label_text = f"{patient['first_name']} {patient['last_name']} | Freezer: {patient['freezer_id']} | CCF: {patient['ccf_number']}"
         self.selected_patient_label = ctk.CTkLabel(self.accession_frame, text=label_text, wraplength=600, anchor="w")
         self.selected_patient_label.grid(row=0, column=0, columnspan=6, pady=8, padx=10, sticky="ew")
 
@@ -249,8 +251,8 @@ class NewAccessionFrame(ctk.CTkScrollableFrame):
             
             if not enrollment:
                 conn.execute(
-                    "INSERT INTO enrollments (patient_id, study_id, enrollment_date) VALUES (?, ?, ?)",
-                    (patient_id, study_id, date.today().strftime("%Y-%m-%d"))
+                    "INSERT INTO enrollments (patient_id, study_id, enrollment_date, freezer_id) VALUES (?, ?, ?, ?)",
+                    (patient_id, study_id, date.today().strftime("%Y-%m-%d"), self.freezer_entry.get().strip())
                 )
                 enrollment_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
             else:
@@ -264,14 +266,13 @@ class NewAccessionFrame(ctk.CTkScrollableFrame):
             # Insert accession
             conn.execute(
                 """INSERT INTO accessions 
-                (enrollment_id, accession_date, timepoint, disease_type, freezer_id, tech_id, notes)
-                VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (enrollment_id, accession_date, timepoint, disease_type, tech_id, notes)
+                VALUES (?, ?, ?, ?, ?, ?)""",
                 (
                     enrollment_id,
                     date.today().strftime("%Y-%m-%d"),
                     self.timepoint_entry.get().strip() or None,
                     self.disease_entry.get().strip() or None,
-                    self.freezer_entry.get().strip() or None,
                     tech_id,
                     None
                 )
@@ -314,11 +315,11 @@ class NewAccessionFrame(ctk.CTkScrollableFrame):
         self.new_last_name_entry = ctk.CTkEntry(self.accession_frame, width=200, placeholder_text="Last Name")
         self.new_last_name_entry.grid(row=1, column=1, pady=8, padx=10, sticky="w")
 
-        # IML Number
-        self.new_iml_num_label = ctk.CTkLabel(self.accession_frame, text="IML Number", wraplength=600, anchor="w")
-        self.new_iml_num_label.grid(row=2, column=0, columnspan=6, pady=8, padx=10, sticky="ew")
-        self.new_iml_num_entry = ctk.CTkEntry(self.accession_frame, width=200, placeholder_text="IML Number")
-        self.new_iml_num_entry.grid(row=2, column=1, pady=8, padx=10, sticky="w")
+        # Freezer ID
+        self.new_freezer_id_label = ctk.CTkLabel(self.accession_frame, text="Freezer ID", wraplength=600, anchor="w")
+        self.new_freezer_id_label.grid(row=2, column=0, columnspan=6, pady=8, padx=10, sticky="ew")
+        self.new_freezer_id_entry = ctk.CTkEntry(self.accession_frame, width=200, placeholder_text="Freezer ID")
+        self.new_freezer_id_entry.grid(row=2, column=1, pady=8, padx=10, sticky="w")
 
         # CCF Number
         self.new_ccf_num_label = ctk.CTkLabel(self.accession_frame, text="CCF Number", wraplength=600, anchor="w")
@@ -350,14 +351,14 @@ class NewAccessionFrame(ctk.CTkScrollableFrame):
     def save_new_patient(self):
         first_name = self.new_first_name_entry.get().strip()
         last_name = self.new_last_name_entry.get().strip()
-        iml_number = self.new_iml_num_entry.get().strip().upper()
+        freezer_id = self.new_freezer_id_entry.get().strip().upper()
         ccf_number = self.new_ccf_num_entry.get().strip()
         uh_id = self.new_uh_id_entry.get().strip()
         dob_str = self.new_dob_entry.get().strip()
         study_name = self.new_study_optionmenu.get()
 
-        if not first_name or not last_name or not iml_number:
-            CTkMessagebox(title="Error", message="First, last name, and IML number are required.", icon="cancel")
+        if not first_name or not last_name or not freezer_id:
+            CTkMessagebox(title="Error", message="First, last name, and Freezer ID are required.", icon="cancel")
             return
 
         dob = None
@@ -380,22 +381,28 @@ class NewAccessionFrame(ctk.CTkScrollableFrame):
         with conn:
             try:
                 conn.execute(
-                    "INSERT INTO patients (first_name, last_name, iml_number, ccf_number, uh_id, date_of_birth) \
-                    VALUES (?, ?, ?, ?, ?, ?)",
-                    (first_name, last_name, iml_number, ccf_number, uh_id, dob_str if dob else None)
+                    "INSERT INTO patients (first_name, last_name, ccf_number, uh_id, date_of_birth) \
+                    VALUES (?, ?, ?, ?, ?)",
+                    (first_name, last_name, ccf_number, uh_id, dob_str if dob else None)
                 )
             except sqlite3.IntegrityError:
                 CTkMessagebox(title="Error", 
-                              message="IML Number must be unique. A patient with this IML number already exists.", 
+                              message="MRN/CCF Number must be unique. A patient with this MRN/CCF Number already exists.", 
                               icon="cancel")
                 return
             patient_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
 
             if study_id:
-                conn.execute(
-                    "INSERT INTO enrollments (patient_id, study_id, enrollment_date) VALUES (?, ?, ?)",
-                    (patient_id, study_id, date.today().strftime("%Y-%m-%d"))
-                )
+                try:
+                    conn.execute(
+                        "INSERT INTO enrollments (patient_id, study_id, enrollment_date, freezer_id) VALUES (?, ?, ?, ?)",
+                        (patient_id, study_id, date.today().strftime("%Y-%m-%d"), freezer_id)
+                    )
+                except sqlite3.IntegrityError:
+                    CTkMessagebox(title="Error", 
+                                  message="Freezer ID must be unique. A patient with this Freezer ID already exists.", 
+                                  icon="cancel")
+                    return
         conn = get_db_connection(db_path)
         new_patient = conn.execute(
             "SELECT * FROM patients WHERE patient_id = ?", (patient_id,)

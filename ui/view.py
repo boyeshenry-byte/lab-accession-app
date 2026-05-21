@@ -34,13 +34,13 @@ class ViewAccessionFrame(ctk.CTkFrame):
         self.filter_button = ctk.CTkButton(self.title_frame, text="Show Filters", command=self.toggle_filters_button)
         self.filter_button.grid(row=0, column=0, padx=12)
         
-        self.details_frame = ctk.CTkFrame(self.outer_frame, fg_color="green")
+        self.details_frame = ctk.CTkFrame(self.outer_frame)
         self.details_frame.grid(row=1, column=0, pady=12, padx=12, sticky="nsew")
         self.details_frame.columnconfigure(0, weight=0)
         self.details_frame.columnconfigure(1, weight=1)
         self.details_frame.rowconfigure(0, weight=1)
         
-        self.bottom_frame = ctk.CTkFrame(self.outer_frame, fg_color="blue")
+        self.bottom_frame = ctk.CTkFrame(self.outer_frame)
         self.bottom_frame.grid(row=2, column=0, pady=12, padx=12, sticky="ew")
 
         self.back_button = ctk.CTkButton(self.bottom_frame, text="Back to Home", command=self.back_to_home)
@@ -61,11 +61,6 @@ class ViewAccessionFrame(ctk.CTkFrame):
         self.name_search_label.grid(column=0, row=1)
         self.name_filter_entry = ctk.CTkEntry(self.filter_frame)
         self.name_filter_entry.grid(column=1, row=1)
-
-        self.iml_filter_label = ctk.CTkLabel(self.filter_frame, text="IML Number")
-        self.iml_filter_label.grid(column=0, row=2)
-        self.iml_filter_entry = ctk.CTkEntry(self.filter_frame)
-        self.iml_filter_entry.grid(column=1, row=2)
 
         self.tech_filter_label = ctk.CTkLabel(self.filter_frame, text="Tech Initals")
         self.tech_filter_label.grid(column=0, row=3)
@@ -121,10 +116,10 @@ class ViewAccessionFrame(ctk.CTkFrame):
         self.data_frame.rowconfigure(1, weight=0)
 
         self.treeview = ttk.Treeview(self.data_frame, 
-                                     columns=("IML number", "Last Name", "First Name", "DOB", "MRN", "Study",
-                                              "Accession Date", "Timepoint", "Disease", "Freezer ID", 
+                                     columns=("Freezer ID", "Last Name", "First Name", "DOB", "MRN", "Study",
+                                              "Accession Date", "Timepoint", "Disease",
                                               "Tubes", "Tech Initals", "Notes"), show="headings")
-        self.treeview.heading("IML number", text="IML Number")
+        self.treeview.heading("Freezer ID", text="Freezer ID")
         self.treeview.heading("Last Name", text="Last Name")
         self.treeview.heading("First Name", text="First Name")
         self.treeview.heading("DOB", text="DOB")
@@ -133,7 +128,6 @@ class ViewAccessionFrame(ctk.CTkFrame):
         self.treeview.heading("Accession Date", text="Accession Date")
         self.treeview.heading("Timepoint", text="Timepoint")
         self.treeview.heading("Disease", text="Disease")
-        self.treeview.heading("Freezer ID", text="Freezer ID")
         self.treeview.heading("Tubes", text="Tubes")
         self.treeview.heading("Tech Initals", text="Tech Initials")
         self.treeview.heading("Notes", text="Notes")
@@ -155,7 +149,6 @@ class ViewAccessionFrame(ctk.CTkFrame):
 
     def filter_results(self):
         search_name = self.name_filter_entry.get().strip()
-        search_iml = self.iml_filter_entry.get().strip()
         mrn_filter = self.mrn_filter_entry.get().strip()
         tech_filter = self.tech_filter_dropdown.get().strip()
         study_filter = self.study_filter_dropdown.get().strip()
@@ -171,10 +164,6 @@ class ViewAccessionFrame(ctk.CTkFrame):
         if search_name:
             conditions.append("(p.first_name || ' ' || p.last_name) LIKE ?")
             params.append(f"%{search_name}%")
-
-        if search_iml:
-            conditions.append("p.iml_number = ?")
-            params.append(search_iml)
 
         if tech_filter and tech_filter != "All":
             conditions.append("t.tech_initials = ?")
@@ -193,7 +182,7 @@ class ViewAccessionFrame(ctk.CTkFrame):
             params.append(disease_filter)
 
         if freezer_filter:
-            conditions.append("a.freezer_id = ?")
+            conditions.append("e.freezer_id = ?")
             params.append(freezer_filter)
 
         if mrn_filter:
@@ -215,8 +204,8 @@ class ViewAccessionFrame(ctk.CTkFrame):
 
         conn = get_db_connection(db_path)
         query = f"""
-            SELECT  p.iml_number, p.last_name, p.first_name, p.date_of_birth, p.ccf_number, s.study_name,
-                    a.accession_date, a.timepoint, a.disease_type, a.freezer_id, tubes.tubes, t.tech_initials, a.notes
+            SELECT  e.freezer_id, p.last_name, p.first_name, p.date_of_birth, p.ccf_number, s.study_name,
+                    a.accession_date, a.timepoint, a.disease_type, tubes.tubes, t.tech_initials, a.notes
             FROM accessions a 
             JOIN enrollments e ON a.enrollment_id = e.enrollment_id
             JOIN patients p ON e.patient_id = p.patient_id
@@ -238,15 +227,22 @@ class ViewAccessionFrame(ctk.CTkFrame):
             self.treeview.insert("", "end", values=tuple(result))
 
     def export_to_excel(self):
-        # Implementation for exporting accession details and results to Excel
+        #vals = []
+        #for row in self.treeview.get_children():
+         #   vals.append(self.treeview.item(row, "values"))
+
+        #openpyxl.Workbook()
+        #openpyxl.workbook.active
+        
+        #openpyxl.worksheet.append("")\
         pass
 
     def load_accession_details(self):
         conn = get_db_connection(db_path)
         with conn:
             accession_details = conn.execute("""                           
-            SELECT  p.iml_number, p.last_name, p.first_name, p.date_of_birth, p.ccf_number, s.study_name,
-                    a.accession_date, a.timepoint, a.disease_type, a.freezer_id, tubes.tubes, t.tech_initials, a.notes
+            SELECT  e.freezer_id, p.last_name, p.first_name, p.date_of_birth, p.ccf_number, s.study_name,
+                    a.accession_date, a.timepoint, a.disease_type, tubes.tubes, t.tech_initials, a.notes
             FROM accessions a 
             JOIN enrollments e ON a.enrollment_id = e.enrollment_id
             JOIN patients p ON e.patient_id = p.patient_id
@@ -288,7 +284,7 @@ class ViewAccessionFrame(ctk.CTkFrame):
         return [study['study_name'] for study in studies]
     
     def reset_filter(self):
-        entries=[self.name_filter_entry, self.accession_from_entry, self.accession_to_entry, self.iml_filter_entry, 
+        entries=[self.name_filter_entry, self.accession_from_entry, self.accession_to_entry, 
                  self.timepoint_filter_entry, self.mrn_filter_entry, self.freezer_filter_entry, self.disease_filter_entry]
         dropdowns=[self.tech_filter_dropdown, self.study_filter_dropdown]
         

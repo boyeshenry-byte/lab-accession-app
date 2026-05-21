@@ -17,7 +17,7 @@ class EditAccessionFrame(ctk.CTkFrame):
         conn = get_db_connection(db_path)
         with conn:
             accession = conn.execute("""
-                SELECT a.*, p.first_name, p.last_name, p.iml_number, p.ccf_number, 
+                SELECT a.*, p.first_name, p.last_name, e.freezer_id, p.ccf_number, 
                 p.uh_id, p.date_of_birth, t.tech_initials, s.study_name
                 FROM accessions a
                 JOIN enrollments e ON a.enrollment_id = e.enrollment_id
@@ -42,7 +42,7 @@ class EditAccessionFrame(ctk.CTkFrame):
         
         self.title_label = ctk.CTkLabel(self, text=f"Edit Accession", font=ctk.CTkFont(size=20, weight="bold"))
         self.title_label.grid(row=0, column=0, columnspan=2, pady=12)
-        self.patient_info_label = ctk.CTkLabel(self, text=f"Patient: {accession['first_name']} {accession['last_name']} (IML: {accession['iml_number']}, CCF: {accession['ccf_number']})")
+        self.patient_info_label = ctk.CTkLabel(self, text=f"Patient: {accession['first_name']} {accession['last_name']} (Freezer: {accession['freezer_id']}, CCF: {accession['ccf_number']})")
         self.patient_info_label.grid(row=1, column=0, columnspan=2, pady=8)
 
         self.freezer_id_label = ctk.CTkLabel(self, text="Freezer ID:")
@@ -82,10 +82,12 @@ class EditAccessionFrame(ctk.CTkFrame):
         self.back_button = ctk.CTkButton(self, text="Back", command=self.go_back)
         self.back_button.grid(row=0, column=2, pady=8, padx=10)
 
+        self.enrollment_id = accession['enrollment_id']
+
     def save_changes(self):
         from ui.home import HomeFrame
         freezer_id = self.freezer_id_entry.get().strip() or None
-        tech_initials = self.tech_entry.get().strip()
+        tech_initials = self.tech_dropdown.get().strip()
         disease_type = self.disease_type_entry.get().strip() or None
         timepoint = self.timepoint_entry.get().strip() or None
         notes = self.notes_text.get("0.0", "end").strip() or None
@@ -98,13 +100,23 @@ class EditAccessionFrame(ctk.CTkFrame):
             if tech:
                 tech_id = tech['tech_id']
 
+        if freezer_id:
+            conn = get_db_connection(db_path)
+            with conn:
+                conn.execute("""
+                        UPDATE enrollments
+                        SET freezer_id = ?
+                        WHERE enrollment_id = ? 
+                        """, (freezer_id, self.enrollment_id))
+            conn.close()
+
         conn = get_db_connection(db_path)
         with conn:
             conn.execute("""
                 UPDATE accessions
-                SET freezer_id = ?, tech_id = ?, disease_type = ?, timepoint = ?, notes = ?
+                SET tech_id = ?, disease_type = ?, timepoint = ?, notes = ?
                 WHERE accession_id = ?
-            """, (freezer_id, tech_id, disease_type, timepoint, notes, self.accession_id))
+            """, (tech_id, disease_type, timepoint, notes, self.accession_id))
         conn.close()
 
         CTkMessagebox(title="Success", message="Accession updated successfully.", icon="check")

@@ -6,7 +6,6 @@ create table if not exists studies(
 
 create table if not exists patients(
     patient_id integer primary key autoincrement,
-    iml_number varchar(255) not null unique,
     first_name varchar(255) not null,
     last_name varchar(255) not null,
     date_of_birth date,
@@ -18,6 +17,7 @@ create table if not exists enrollments(
     enrollment_id integer primary key autoincrement,
     study_id integer,
     patient_id integer not null,
+    freezer_id varchar(255) not null,
     enrollment_date date,
     foreign key (study_id) references studies(study_id),
     foreign key (patient_id) references patients(patient_id)
@@ -29,7 +29,6 @@ create table if not exists accessions(
     accession_date date not null,
     timepoint varchar(255),
     disease_type varchar(255),
-    freezer_id varchar(255),
     tech_id integer,
     notes text,
     foreign key (enrollment_id) references enrollments(enrollment_id),

@@ -75,7 +75,7 @@ class SearchAccessionFrame(ctk.CTkFrame):
         params = []
 
         if search_term:
-            conditions.append("(p.first_name || ' ' || p.last_name LIKE ? OR p.iml_number LIKE ? OR p.ccf_number LIKE ?)")
+            conditions.append("(p.first_name || ' ' || p.last_name LIKE ? OR e.freezer_id LIKE ? OR p.ccf_number LIKE ?)")
             params.extend([f"%{search_term}%", f"%{search_term}%", f"%{search_term}%"])
 
         if tech_filter and tech_filter != "All":
@@ -90,7 +90,7 @@ class SearchAccessionFrame(ctk.CTkFrame):
 
         conn = get_db_connection(db_path)
         query = f"""
-            SELECT a.accession_id, p.first_name, p.last_name, p.iml_number, 
+            SELECT a.accession_id, p.first_name, p.last_name, e.freezer_id, 
                 s.study_name, a.accession_date, t.tech_initials
             FROM patients p
             JOIN enrollments e ON p.patient_id = e.patient_id
@@ -112,9 +112,9 @@ class SearchAccessionFrame(ctk.CTkFrame):
             return
         for idx, result in enumerate(results):
             result_button = result_button = ctk.CTkButton(self, 
-                                                          text=f"{result['first_name']} {result['last_name']} \
-                                                            (IML: {result['iml_number']}) - {result['study_name'] if result['study_name'] else 'No Study'} \
-                                                                - {result['accession_date']}",
+                                                          text=f"{result['first_name']} {result['last_name']}\
+                                                              - {result['study_name'] if result['study_name'] else 'No Study'} \
+                                                                - {result['freezer_id']} - {result['accession_date']}",
                                                           command=lambda r=result: self.open_edit(r['accession_id']),
                                                             anchor="w"
 )
