@@ -5,7 +5,7 @@ import sqlite3
 from CTkMessagebox import CTkMessagebox
 from ui.add_study_dialog import AddStudyDialog
 
-class NewAccessionFrame(ctk.CTkScrollableFrame):
+class NewAccessionFrame(ctk.CTkFrame):
     def __init__(self, master):
         super().__init__(master)
         self.pack(pady=20, padx=60, fill="both", expand=True)
@@ -430,4 +430,5 @@ class NewAccessionFrame(ctk.CTkScrollableFrame):
 
     def back_to_home(self):
         from ui.home import HomeFrame
-        self.get_app().show_frame(HomeFrame)
+        app = self.get_app()
+        app.show_frame(HomeFrame)
