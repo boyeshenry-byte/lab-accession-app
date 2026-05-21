@@ -84,6 +84,10 @@ class EditAccessionFrame(ctk.CTkFrame):
 
         self.enrollment_id = accession['enrollment_id']
 
+        self.detail_rows = []
+        self.add_detail_button = ctk.CTkButton(self, text="Add Detail", command=self.add_accession_detail)
+        self.add_detail_button.grid(row=7, column=1, pady=8, padx=10, sticky="w")
+
     def save_changes(self):
         from ui.home import HomeFrame
         freezer_id = self.freezer_id_entry.get().strip() or None
@@ -91,6 +95,7 @@ class EditAccessionFrame(ctk.CTkFrame):
         disease_type = self.disease_type_entry.get().strip() or None
         timepoint = self.timepoint_entry.get().strip() or None
         notes = self.notes_text.get("0.0", "end").strip() or None
+        details = [(field.get().strip(), value.get().strip()) for field, value, _ in self.detail_rows if field.get().strip() and value.get().strip()]
 
         tech_id = None
         if tech_initials:
@@ -119,6 +124,16 @@ class EditAccessionFrame(ctk.CTkFrame):
             """, (tech_id, disease_type, timepoint, notes, self.accession_id))
         conn.close()
 
+        if details:
+            conn = get_db_connection(db_path)
+            with conn:
+                for field_name, field_value in details:
+                    conn.execute("""
+                        INSERT INTO accession_details (accession_id, field_name, field_value)
+                        VALUES (?, ?, ?)
+                    """, (self.accession_id, field_name, field_value))
+            conn.close()
+
         CTkMessagebox(title="Success", message="Accession updated successfully.", icon="check")
         self.get_app().show_frame(HomeFrame)
 
@@ -144,3 +159,11 @@ class EditAccessionFrame(ctk.CTkFrame):
             techs = conn.execute("SELECT tech_initials FROM techs").fetchall()
         conn.close()
         return [tech['tech_initials'] for tech in techs]
+    
+    def add_accession_detail(self):
+        row_index = len(self.detail_rows) + 7
+        field_name_entry = ctk.CTkEntry(self, placeholder_text="Field Name")
+        field_name_entry.grid(row=row_index, column=1, pady=8, padx=10, sticky="w")
+        field_value_entry = ctk.CTkEntry(self, width=100, placeholder_text="Value")
+        field_value_entry.grid(row=row_index, column=2, pady=8, padx=10, sticky="w")
+        self.detail_rows.append((field_name_entry, field_value_entry, None))
