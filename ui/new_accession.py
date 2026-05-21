@@ -405,7 +405,7 @@ class NewAccessionFrame(ctk.CTkFrame):
                     return
         conn = get_db_connection(db_path)
         new_patient = conn.execute(
-            "SELECT * FROM patients WHERE patient_id = ?", (patient_id,)
+            "SELECT * FROM patients JOIN enrollments ON patients.patient_id = enrollments.patient_id WHERE patients.patient_id = ?", (patient_id,)
         ).fetchone()
         conn.close()
         self.after(50, lambda: self.select_patient(new_patient)) 
