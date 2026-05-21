@@ -42,6 +42,7 @@ class ViewAccessionFrame(ctk.CTkFrame):
         
         self.bottom_frame = ctk.CTkFrame(self.outer_frame)
         self.bottom_frame.grid(row=2, column=0, pady=12, padx=12, sticky="ew")
+        self.bottom_frame.columnconfigure(0, weight=1)
 
         self.back_button = ctk.CTkButton(self.bottom_frame, text="Back to Home", command=self.back_to_home)
         self.back_button.grid(row=0, column=6, columnspan=2, pady=8)

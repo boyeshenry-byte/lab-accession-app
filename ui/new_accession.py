@@ -15,13 +15,13 @@ class NewAccessionFrame(ctk.CTkFrame):
         for i in range(6):
             self.columnconfigure(i, weight=1)
         
-        self.title_label = ctk.CTkLabel(self, text=f"New Accession")
+        self.title_label = ctk.CTkLabel(self, text=f"New Accession", font=ctk.CTkFont(size=20, weight="bold"))
         self.title_label.grid(row=0, column=0, columnspan=2, pady=12, padx=10, sticky="ew")
 
-        self.search_label = ctk.CTkLabel(self, text="Search (MRN, Patient Name or Freezer ID)")
+        self.search_label = ctk.CTkLabel(self, text="Search")
         self.search_label.grid(row=1, column=0, columnspan=2, pady=8, padx=10, sticky="e")
 
-        self.search_entry = ctk.CTkEntry(self, width=200)
+        self.search_entry = ctk.CTkEntry(self, width=200, placeholder_text="Name, MRN, or Freezer ID")
         self.search_entry.grid(row=1, column=2, pady=8, padx=10, sticky="w")
         self.search_entry.bind("<Return>", lambda event: self.search_patient())
 
