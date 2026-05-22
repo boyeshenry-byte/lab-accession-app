@@ -17,7 +17,7 @@ create table if not exists enrollments(
     enrollment_id integer primary key autoincrement,
     study_id integer,
     patient_id integer not null,
-    freezer_id varchar(255) not null,
+    freezer_id varchar(255) not null unique,
     enrollment_date date,
     foreign key (study_id) references studies(study_id),
     foreign key (patient_id) references patients(patient_id)
