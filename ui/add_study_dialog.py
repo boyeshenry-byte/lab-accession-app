@@ -9,6 +9,7 @@ class AddStudyDialog(ctk.CTkToplevel):
         self.geometry("400x300")
         self.on_save = on_save
         self.grab_set()
+        self.focus_force()
         self.study_name_var = ctk.StringVar()
         self.irb_number_var = ctk.StringVar()
         self.create_widgets()
@@ -36,5 +37,7 @@ class AddStudyDialog(ctk.CTkToplevel):
         conn.close()
         
         CTkMessagebox(title="Success", message=f"Study '{study_name}' added successfully.", icon="check")
+        
+        self.grab_release()
         self.on_save(study_name)
         self.destroy()

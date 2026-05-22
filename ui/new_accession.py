@@ -187,9 +187,12 @@ class NewAccessionFrame(ctk.CTkFrame):
         
 
     def add_new_tech(self, event=None):
-        new_initials = self.tech_other_entry.get().strip().upper()
-        if not new_initials:
+        if event is None:
             return
+        widget = event.widget
+        if not widget.winfo_exists():
+            return
+        new_initials = widget.get().strip()
         conn = get_db_connection(db_path)
         with conn:
             conn.execute("INSERT OR IGNORE INTO techs (tech_initials) VALUES (?)", (new_initials,))
@@ -197,7 +200,7 @@ class NewAccessionFrame(ctk.CTkFrame):
         updated_techs = self.load_techs()
         self.tech_dropdown.configure(values=updated_techs)
         self.tech_dropdown.set(new_initials)
-        self.tech_other_entry.destroy()
+        widget.destroy()
 
     def load_tubes(self):
         conn = get_db_connection(db_path)
@@ -226,9 +229,12 @@ class NewAccessionFrame(ctk.CTkFrame):
             self.tube_rows[row_idx] = (tube_dropdown, quantity_entry, None)
 
     def add_new_tube(self, event=None):
-        new_tube = self.tube_other_entry.get().strip()
-        if not new_tube:
+        if event is None:
             return
+        widget = event.widget
+        if not widget.winfo_exists():
+            return
+        new_tube = widget.get().strip()
         conn = get_db_connection(db_path)
         with conn:
             conn.execute("INSERT OR IGNORE INTO tube_types (tube_type_name) VALUES (?)", (new_tube,))
@@ -236,7 +242,7 @@ class NewAccessionFrame(ctk.CTkFrame):
         updated_tubes = self.load_tubes()
         self.tube_dropdown.configure(values=updated_tubes)
         self.tube_dropdown.set(new_tube)
-        self.tube_other_entry.destroy()
+        widget.destroy()
 
     def add_tube_row(self):
         row_index = len(self.tube_rows) + 7
@@ -366,7 +372,7 @@ class NewAccessionFrame(ctk.CTkFrame):
         # Study
         self.new_study_label = ctk.CTkLabel(self.accession_frame, text="Study (if known)")
         self.new_study_label.grid(row=6, column=0, pady=8, padx=10, sticky="e")
-        self.new_study_optionmenu = ctk.CTkComboBox(self.accession_frame, values=self.load_studies())
+        self.new_study_optionmenu = ctk.CTkComboBox(self.accession_frame, values=self.load_studies(), command=self.on_new_study_selected)
         self.new_study_optionmenu.grid(row=6, column=1, pady=8, padx=10, sticky="w")
 
         self.save_patient_button = ctk.CTkButton(self.accession_frame, text="Save Patient", command=self.save_new_patient)
@@ -429,7 +435,10 @@ class NewAccessionFrame(ctk.CTkFrame):
                     return
         conn = get_db_connection(db_path)
         new_patient = conn.execute(
-            "SELECT * FROM patients JOIN enrollments ON patients.patient_id = enrollments.patient_id WHERE patients.patient_id = ?", (patient_id,)
+            """SELECT p.*, e.freezer_id 
+            FROM patients p 
+            LEFT JOIN enrollments e ON p.patient_id = e.patient_id 
+            WHERE p.patient_id = ?""", (patient_id,)
         ).fetchone()
         conn.close()
         self.after(50, lambda: self.select_patient(new_patient)) 
@@ -456,3 +465,12 @@ class NewAccessionFrame(ctk.CTkFrame):
         from ui.home import HomeFrame
         app = self.get_app()
         app.show_frame(HomeFrame)
+
+    def on_new_study_selected(self, choice):
+        if choice == "Add New Study":
+            AddStudyDialog(self, on_save=self.on_patient_form_study_saved)
+
+    def on_patient_form_study_saved(self, study_name):
+        self.studies = self.load_studies()
+        self.new_study_optionmenu.configure(values=self.studies)
+        self.new_study_optionmenu.set(study_name)
