@@ -27,6 +27,7 @@ class ViewAccessionFrame(ctk.CTkFrame):
         self.outer_frame.rowconfigure(1, weight=1)
         self.outer_frame.rowconfigure(2, weight=0)
 
+        # Title of the view page
         self.title_frame = ctk.CTkFrame(self.outer_frame)
         self.title_frame.grid(row=0, column=0, pady=12, padx=12, sticky="ew")
         self.title_label = ctk.CTkLabel(self.title_frame, text="Accession Details", font=ctk.CTkFont(size=20, weight="bold"))
@@ -34,12 +35,14 @@ class ViewAccessionFrame(ctk.CTkFrame):
         self.filter_button = ctk.CTkButton(self.title_frame, text="Show Filters", command=self.toggle_filters_button)
         self.filter_button.grid(row=0, column=0, padx=12)
         
+        # Viewing area
         self.details_frame = ctk.CTkFrame(self.outer_frame)
         self.details_frame.grid(row=1, column=0, pady=12, padx=12, sticky="nsew")
         self.details_frame.columnconfigure(0, weight=0)
         self.details_frame.columnconfigure(1, weight=1)
         self.details_frame.rowconfigure(0, weight=1)
         
+        # Buttons frame
         self.bottom_frame = ctk.CTkFrame(self.outer_frame)
         self.bottom_frame.grid(row=2, column=0, pady=12, padx=12, sticky="ew")
         self.bottom_frame.columnconfigure(0, weight=1)
@@ -50,6 +53,7 @@ class ViewAccessionFrame(ctk.CTkFrame):
         self.export_button = ctk.CTkButton(self.bottom_frame, text="Export to Excel", command=self.export_to_excel)
         self.export_button.grid(row=0, column=4, columnspan=2, pady=8)
 
+        # Hidden filter
         self.filter_frame = ctk.CTkScrollableFrame(self.details_frame, width=300)
         self.filter_frame.grid(row=0, column=0, sticky="nsew", padx=12, pady=12)
 
@@ -58,6 +62,7 @@ class ViewAccessionFrame(ctk.CTkFrame):
         self.filter_title = ctk.CTkLabel(self.filter_frame, text="Filter")
         self.filter_title.grid(column=0, row=0)
 
+        # Filter conditions
         self.name_search_label = ctk.CTkLabel(self.filter_frame, text="Patient Name")
         self.name_search_label.grid(column=0, row=1)
         self.name_filter_entry = ctk.CTkEntry(self.filter_frame)
@@ -104,12 +109,14 @@ class ViewAccessionFrame(ctk.CTkFrame):
         self.accession_to_entry = ctk.CTkEntry(self.filter_frame)
         self.accession_to_entry.grid(column=1, row=11)
 
+        # Filter buttons
         self.apply_filter_button = ctk.CTkButton(self.filter_frame, text="Filter", command=self.filter_results)
         self.apply_filter_button.grid(column=0, row=100)
 
         self.reset_filter_button = ctk.CTkButton(self.filter_frame, text="Reset", command=self.reset_filter)
         self.reset_filter_button.grid(column=1, row=100)
 
+        # Data - Populated using treeview
         self.data_frame = ctk.CTkFrame(self.details_frame)
         self.data_frame.grid(row=0, column=1, sticky="nsew", padx=12, pady=12)
         self.data_frame.columnconfigure(0, weight=1)
@@ -119,7 +126,7 @@ class ViewAccessionFrame(ctk.CTkFrame):
         self.treeview = ttk.Treeview(self.data_frame, 
                                      columns=("Freezer ID", "Last Name", "First Name", "DOB", "MRN", "Study",
                                               "Accession Date", "Timepoint", "Disease",
-                                              "Tubes", "Tech Initals", "Notes"), show="headings")
+                                              "Tubes", "Tech Initals", "Notes", "accession_id"), show="headings")
         self.treeview.heading("Freezer ID", text="Freezer ID")
         self.treeview.heading("Last Name", text="Last Name")
         self.treeview.heading("First Name", text="First Name")
@@ -137,7 +144,13 @@ class ViewAccessionFrame(ctk.CTkFrame):
         self.scrollbar_tree.grid(row=1, column=0, sticky="ew")
         self.treeview.configure(xscrollcommand=self.scrollbar_tree.set)
 
+        # Hidden column - stores accession_id for edit navigation, not displayed to user
+        self.treeview.column("accession_id", width=0, minwidth=0, stretch=False)
+
         self.load_accession_details()
+
+        # Select patient in view
+        self.treeview.bind("<<TreeviewSelect>>", self.on_row_select)
 
     def toggle_filters_button(self):
         if self.filters_visible:
@@ -206,7 +219,7 @@ class ViewAccessionFrame(ctk.CTkFrame):
         conn = get_db_connection(db_path)
         query = f"""
             SELECT  e.freezer_id, p.last_name, p.first_name, p.date_of_birth, p.ccf_number, s.study_name,
-                    a.accession_date, a.timepoint, a.disease_type, tubes.tubes, t.tech_initials, a.notes
+                    a.accession_date, a.timepoint, a.disease_type, tubes.tubes, t.tech_initials, a.notes, a.accession_id
             FROM accessions a 
             JOIN enrollments e ON a.enrollment_id = e.enrollment_id
             JOIN patients p ON e.patient_id = p.patient_id
@@ -243,7 +256,7 @@ class ViewAccessionFrame(ctk.CTkFrame):
                    "Tubes", "Tech Initials", "Notes"])
         
         for val in vals:
-            ws.append(val)
+            ws.append(list(val[:-1]))
 
         
         if file_path:
@@ -255,7 +268,7 @@ class ViewAccessionFrame(ctk.CTkFrame):
         with conn:
             accession_details = conn.execute("""                           
             SELECT  e.freezer_id, p.last_name, p.first_name, p.date_of_birth, p.ccf_number, s.study_name,
-                    a.accession_date, a.timepoint, a.disease_type, tubes.tubes, t.tech_initials, a.notes
+                    a.accession_date, a.timepoint, a.disease_type, tubes.tubes, t.tech_initials, a.notes, a.accession_id
             FROM accessions a 
             JOIN enrollments e ON a.enrollment_id = e.enrollment_id
             JOIN patients p ON e.patient_id = p.patient_id
@@ -310,3 +323,104 @@ class ViewAccessionFrame(ctk.CTkFrame):
             self.treeview.delete(row)
         
         self.load_accession_details()
+
+    def on_row_select(self, event):
+        selection = self.treeview.selection()
+
+        if selection:
+            vals = self.treeview.item(selection[0], "values")
+            accession_id = vals[-1]
+            self.show_detail_popup(accession_id)
+
+    def show_detail_popup(self, accession_id):
+        self.detail_popup = ctk.CTkToplevel(self)
+        self.detail_popup.title("Accession Details")
+        self.detail_popup.geometry("500x600")
+
+        # Get indiviual row
+        conn = get_db_connection(db_path)
+        query = conn.execute("""
+            SELECT  e.freezer_id, p.last_name, p.first_name, p.date_of_birth, p.ccf_number, s.study_name,
+                    a.accession_date, a.timepoint, a.disease_type, tubes.tubes, t.tech_initials, a.notes, a.accession_id
+            FROM accessions a 
+            JOIN enrollments e ON a.enrollment_id = e.enrollment_id
+            JOIN patients p ON e.patient_id = p.patient_id
+            LEFT JOIN studies s ON e.study_id = s.study_id
+            LEFT JOIN techs t ON a.tech_id = t.tech_id
+            LEFT JOIN (SELECT ta.accession_id,
+                            GROUP_CONCAT(tt.tube_type_name || ' x' || ta.quantity, ', ') AS tubes
+                        FROM tube_accessions ta
+                        JOIN tube_types tt ON ta.tube_type_id = tt.tube_type_id
+                        GROUP BY ta.accession_id) tubes ON a.accession_id = tubes.accession_id
+            WHERE a.accession_id = ?
+        """, (accession_id, )).fetchone()
+        query_details = conn.execute("SELECT ad.field_name, ad.field_value FROM accession_details ad WHERE ad.accession_id = ?", 
+                                     (accession_id, )).fetchall()
+        conn.close()
+
+        # Create frame 
+        self.popup_frame = ctk.CTkScrollableFrame(self.detail_popup)
+        self.popup_frame.pack(fill="both", expand=True, padx=12, pady=12)
+
+        # Display queried data
+        # Freezer Id
+        popup_freezer_label = ctk.CTkLabel(self.popup_frame, text="Freezer ID", font=ctk.CTkFont(weight="bold"))
+        popup_freezer_label.grid(row=0, column=0)
+        popup_freezer_value = ctk.CTkLabel(self.popup_frame, text=f"{query['freezer_id']}")
+        popup_freezer_value.grid(row=0, column=1)
+
+        # Name
+        popup_name_label = ctk.CTkLabel(self.popup_frame, text="Name", font=ctk.CTkFont(weight="bold"))
+        popup_name_label.grid(row=1, column=0)
+        popup_name_value = ctk.CTkLabel(self.popup_frame, text=f"{query['last_name']} {query['first_name']}")
+        popup_name_value.grid(row=1, column=1)
+
+        # Study
+        popup_study_label = ctk.CTkLabel(self.popup_frame, text="Study", font=ctk.CTkFont(weight="bold"))
+        popup_study_label.grid(row=2, column=0)
+        popup_study_value = ctk.CTkLabel(self.popup_frame, text=f"{query['study_name']}")
+        popup_study_value.grid(row=2, column=1)
+
+        # Accession Date
+        popup_date_label = ctk.CTkLabel(self.popup_frame, text="Accession Date", font=ctk.CTkFont(weight="bold"))
+        popup_date_label.grid(row=3, column=0)
+        popup_date_value = ctk.CTkLabel(self.popup_frame, text=f"{query['accession_date']}")
+        popup_date_value.grid(row=3, column=1)
+
+        # Tubes
+        popup_tube_label = ctk.CTkLabel(self.popup_frame, text="Tubes", font=ctk.CTkFont(weight="bold"))
+        popup_tube_label.grid(row=4, column=0)
+        popup_tube_value = ctk.CTkLabel(self.popup_frame, text=f"{query['tubes']}")
+        popup_tube_value.grid(row=4, column=1)
+
+        # Notes
+        popup_note_label = ctk.CTkLabel(self.popup_frame, text="Notes", font=ctk.CTkFont(weight="bold"))
+        popup_note_label.grid(row=5, column=0)
+        popup_note_value = ctk.CTkTextbox(self.popup_frame, width=300, height=80)
+        popup_note_value.insert("0.0", query['notes'] if query['notes'] else"")
+        popup_note_value.configure(state="disabled")
+        popup_note_value.grid(row=6, column=1, padx=5, pady=5, sticky="w")
+
+        # Techs
+        popup_tech_label = ctk.CTkLabel(self.popup_frame, text="Techs", font=ctk.CTkFont(weight="bold"))
+        popup_tech_label.grid(row=7, column=0)
+        popup_tech_value = ctk.CTkLabel(self.popup_frame, text=f"{query['tech_initials']}")
+        popup_tech_value.grid(row=7, column=1)
+
+        # Accession Details
+        detail_start_row = 8
+        if query_details:
+            for idx, (name, value) in enumerate(query_details):
+                popup_field_label = ctk.CTkLabel(self.popup_frame, text=name, font=ctk.CTkFont(weight="bold"))
+                popup_field_label.grid(row=detail_start_row + idx, column=0)
+                popup_field_value = ctk.CTkLabel(self.popup_frame, text=value)
+                popup_field_value.grid(row=detail_start_row + idx, column=1) 
+
+        # Edit button
+        edit_button = ctk.CTkButton(self.popup_frame, text="Edit", command=lambda:self.open_edit(accession_id))
+        edit_button.grid(row=100, column=1)
+
+    def open_edit(self, accession_id):
+        from ui.edit_accession import EditAccessionFrame
+        self.detail_popup.destroy()
+        self.get_app().show_frame(EditAccessionFrame, accession_id=accession_id)
