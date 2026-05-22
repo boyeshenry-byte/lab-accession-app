@@ -31,6 +31,7 @@ create table if not exists accessions(
     disease_type varchar(255),
     tech_id integer,
     notes text,
+    is_deleted integer default 0, 
     foreign key (enrollment_id) references enrollments(enrollment_id),
     foreign key (tech_id) references techs(tech_id)
 );
