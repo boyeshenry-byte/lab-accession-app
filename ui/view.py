@@ -230,7 +230,7 @@ class ViewAccessionFrame(ctk.CTkFrame):
                         FROM tube_accessions ta
                         JOIN tube_types tt ON ta.tube_type_id = tt.tube_type_id
                         GROUP BY ta.accession_id) tubes ON a.accession_id = tubes.accession_id
-            {where_clause}
+            {where_clause} AND a.is_deleted = 0
         """
         results = conn.execute(query, params).fetchall()
         conn.close()
@@ -279,6 +279,7 @@ class ViewAccessionFrame(ctk.CTkFrame):
                         FROM tube_accessions ta
                         JOIN tube_types tt ON ta.tube_type_id = tt.tube_type_id
                         GROUP BY ta.accession_id) tubes ON a.accession_id = tubes.accession_id
+            WHERE a.is_deleted = 0
             """, ).fetchall()
             for detail in accession_details:
                 self.treeview.insert("", "end", values=tuple(detail))
@@ -352,7 +353,7 @@ class ViewAccessionFrame(ctk.CTkFrame):
                         FROM tube_accessions ta
                         JOIN tube_types tt ON ta.tube_type_id = tt.tube_type_id
                         GROUP BY ta.accession_id) tubes ON a.accession_id = tubes.accession_id
-            WHERE a.accession_id = ?
+            WHERE a.accession_id = ? and a.is_deleted = 0
         """, (accession_id, )).fetchone()
         query_details = conn.execute("SELECT ad.field_name, ad.field_value FROM accession_details ad WHERE ad.accession_id = ?", 
                                      (accession_id, )).fetchall()
@@ -420,7 +421,31 @@ class ViewAccessionFrame(ctk.CTkFrame):
         edit_button = ctk.CTkButton(self.popup_frame, text="Edit", command=lambda:self.open_edit(accession_id))
         edit_button.grid(row=100, column=1)
 
+        # Delete Button
+        delete_button = ctk.CTkButton(self.popup_frame, text="Delete", command=lambda:self.delete_accession(accession_id))
+        delete_button.grid(row=100, column=0)
+
     def open_edit(self, accession_id):
         from ui.edit_accession import EditAccessionFrame
         self.detail_popup.destroy()
         self.get_app().show_frame(EditAccessionFrame, accession_id=accession_id)
+
+    def delete_accession(self, accession_id):
+        verify_delete = CTkMessagebox(width=200, height=200, header="DELETE ACCESSION!", 
+                                      message="Are you sure you want to delete this accession?",
+                                      option_1="Yes",
+                                      option_2="Cancel")
+        
+        if verify_delete.get() == "Yes":
+            conn = get_db_connection(db_path)
+            with conn:
+                conn.execute("""
+                            UPDATE accessions
+                            SET is_deleted = 1
+                            WHERE accession_id = ?""", (accession_id, ))
+            conn.close()
+
+            self.detail_popup.destroy()
+            for row in self.treeview.get_children():
+                self.treeview.delete(row)
+            self.load_accession_details()

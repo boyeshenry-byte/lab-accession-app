@@ -24,7 +24,7 @@ class EditAccessionFrame(ctk.CTkFrame):
                 JOIN patients p ON e.patient_id = p.patient_id
                 LEFT JOIN techs t ON a.tech_id = t.tech_id
                 LEFT JOIN studies s ON e.study_id = s.study_id
-                WHERE a.accession_id = ?
+                WHERE a.accession_id = ? AND a.is_deleted = 0
             """, (self.accession_id,)).fetchone()
         conn.close()
         return accession
