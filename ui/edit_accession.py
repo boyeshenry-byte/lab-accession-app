@@ -150,8 +150,8 @@ class EditAccessionFrame(ctk.CTkFrame):
         return None
 
     def go_back(self):
-        from ui.search_accession import SearchAccessionFrame
-        self.get_app().show_frame(SearchAccessionFrame)
+        from ui.view import ViewAccessionFrame
+        self.get_app().show_frame(ViewAccessionFrame)
 
     def load_techs(self):
         conn = get_db_connection(db_path)

@@ -1,0 +1,5 @@
+lab_accession_env/
+*.db
+__pycache__/
+*.pyc
+.env
