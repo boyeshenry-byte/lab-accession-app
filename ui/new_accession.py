@@ -135,6 +135,10 @@ class NewAccessionFrame(ctk.CTkFrame):
         self.freezer_entry = ctk.CTkEntry(self.accession_frame, width=200)
         self.freezer_entry.grid(row=5, column=1, pady=8, padx=10, sticky="w")
 
+        # Auto-populate freezer-id if available
+        if patient['freezer_id']:
+            self.freezer_entry.insert(0, patient['freezer_id'])
+
         # Tube Type
         self.tube_rows = []
         self.tube_label = ctk.CTkLabel(self.accession_frame, text="Tubes")
