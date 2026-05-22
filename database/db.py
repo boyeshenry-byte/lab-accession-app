@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 import os
 
 load_dotenv()
-db_path = os.getenv('DB_PATH')
+db_path = os.getenv('DB_PATH', r"R:\Labs\ImmunomonitoringLaboratory\Patient Sample Log\lab_accession.db")
 schema_path = os.path.join(os.path.dirname(__file__), 'schema.sql')
 
 def get_db_connection(db_path):
@@ -23,6 +23,5 @@ def init_db(db_path):
     conn.close()
 
 if __name__ == '__main__':
-    print("starting")
     init_db(db_path)
     print(f"Database initialized at {db_path}") 
