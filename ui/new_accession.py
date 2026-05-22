@@ -15,9 +15,11 @@ class NewAccessionFrame(ctk.CTkFrame):
         for i in range(6):
             self.columnconfigure(i, weight=1)
         
+        # Title 
         self.title_label = ctk.CTkLabel(self, text=f"New Accession", font=ctk.CTkFont(size=20, weight="bold"))
         self.title_label.grid(row=0, column=0, columnspan=2, pady=12, padx=10, sticky="ew")
 
+        # Search for existing patients
         self.search_label = ctk.CTkLabel(self, text="Search")
         self.search_label.grid(row=1, column=0, columnspan=2, pady=8, padx=10, sticky="e")
 
@@ -28,20 +30,25 @@ class NewAccessionFrame(ctk.CTkFrame):
         self.search_button = ctk.CTkButton(self, text="Search", command=self.search_patient)
         self.search_button.grid(row=2, column=1, columnspan=2, pady=8)
 
+        # Add new patients
         self.add_patient_button = ctk.CTkButton(self, text="Add Patient", command=self.show_add_patient_form)
         self.add_patient_button.grid(row=2, column=3, pady=8)
 
+        # Back button
         self.back_button = ctk.CTkButton(self, text="Back", command=self.back_to_home)
         self.back_button.grid(row=0, column=5, columnspan=2, pady=8)
 
+        # Select studies
         self.studies = self.load_studies()
         self.study_label = ctk.CTkLabel(self, text="Select Study")
         self.study_label.grid(row=1, column=3, pady=8, padx=10, sticky="e")
         self.study_optionmenu = ctk.CTkComboBox(self, values=self.studies, command=self.on_study_selected)
         self.study_optionmenu.grid(row=1, column=4, pady=8, padx=10, sticky="w")
 
+        # Search results 
         self.results_frame = ctk.CTkFrame(self, height=150, width=400)
         self.results_frame.grid(row=3, column=0, columnspan=4, pady=12, padx=10, sticky="ew")
+
 
         self.accession_frame = ctk.CTkFrame(self)
         self.accession_frame.grid(row=6, column=0, columnspan=6, pady=12, padx=10, sticky="ew")
@@ -145,6 +152,19 @@ class NewAccessionFrame(ctk.CTkFrame):
         self.tube_label.grid(row=6, column=0, pady=8, padx=10, sticky="e")
         self.add_tube_button = ctk.CTkButton(self.accession_frame, text="Add Tube", command=self.add_tube_row)
         self.add_tube_button.grid(row=6, column=1, pady=8, padx=10, sticky="w")
+
+        # Auto-populate study if available
+        conn = get_db_connection(db_path)
+        with conn:
+            study = conn.execute("""
+                            SELECT s.study_name 
+                            FROM enrollments e 
+                            JOIN studies s ON e.study_id = s.study_id 
+                            WHERE e.patient_id = ? 
+                            ORDER BY e.enrollment_date DESC 
+                            LIMIT 1""", (patient["patient_id"], )).fetchone()
+        if study:
+            self.study_optionmenu.set(study['study_name'])
 
         self.save_button = ctk.CTkButton(self.accession_frame, text="Save Accession", command=self.save_accession)
         self.save_button.grid(row=100, column=0, columnspan=4, pady=16, padx=10)
