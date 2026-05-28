@@ -283,11 +283,17 @@ class NewAccessionFrame(ctk.CTkFrame):
             ).fetchone()
             
             if not enrollment:
-                conn.execute(
-                    "INSERT INTO enrollments (patient_id, study_id, enrollment_date, freezer_id) VALUES (?, ?, ?, ?)",
-                    (patient_id, study_id, date.today().strftime("%Y-%m-%d"), self.freezer_entry.get().strip())
-                )
-                enrollment_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+                try:
+                    conn.execute(
+                        "INSERT INTO enrollments (patient_id, study_id, enrollment_date, freezer_id) VALUES (?, ?, ?, ?)",
+                        (patient_id, study_id, date.today().strftime("%Y-%m-%d"), self.freezer_entry.get().strip())
+                    )
+                    enrollment_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+                except sqlite3.IntegrityError:
+                    CTkMessagebox(title="Error",
+                                  message="Freezer ID must be unique. A patient with this freezer ID already exists.",
+                                  icon="cancel")
+                    return  
             else:
                 enrollment_id = enrollment['enrollment_id']
             
