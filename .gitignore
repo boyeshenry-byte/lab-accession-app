@@ -3,3 +3,5 @@ lab_accession_env/
 __pycache__/
 *.pyc
 .env
+dist/
+build/
