@@ -1,9 +1,8 @@
 name: Build Executables
 
-"on":
+on:
   push:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
   build-windows:
