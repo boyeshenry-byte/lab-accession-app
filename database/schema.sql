@@ -1,6 +1,7 @@
 create table if not exists studies(
     study_id integer primary key autoincrement,
     study_name varchar(255) not null,
+    study_prefix varchar(255) not null,
     irb_number varchar(255) not null
 );
 

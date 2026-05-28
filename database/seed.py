@@ -5,8 +5,8 @@ def seed_db(db_path):
     conn = get_db_connection(db_path)
     with conn:
         # Insert sample users
-        conn.execute("INSERT INTO studies (study_name, irb_number) VALUES (?, ?)", ("Study A", "IRB12345")) 
-        conn.execute("INSERT INTO studies (study_name, irb_number) VALUES (?, ?)", ("Study B", "IRB67890"))
+        conn.execute("INSERT INTO studies (study_name, irb_number, study_prefix) VALUES (?, ?, ?)", ("Study A", "IRB12345", "SA")) 
+        conn.execute("INSERT INTO studies (study_name, irb_number, study_prefix) VALUES (?, ?, ?)", ("Study B", "IRB67890", "SB"))
         conn.execute("INSERT INTO patients (first_name, last_name, date_of_birth, ccf_number) VALUES (?, ?, ?, ?)", \
         ("John", "Doe", "1980-01-01", "CCF001"))
         conn.execute("INSERT INTO patients (first_name, last_name, date_of_birth, ccf_number) VALUES (?, ?, ?, ?)", \

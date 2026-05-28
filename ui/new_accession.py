@@ -105,6 +105,7 @@ class NewAccessionFrame(ctk.CTkFrame):
 
     def select_patient(self, patient):
         self.selected_patient = patient
+        
         for widget in self.accession_frame.winfo_children():
             widget.destroy()
         label_text = f"{patient['first_name']} {patient['last_name']} | Freezer: {patient['freezer_id']} | CCF: {patient['ccf_number']}"
@@ -145,6 +146,10 @@ class NewAccessionFrame(ctk.CTkFrame):
         # Auto-populate freezer-id if available
         if patient['freezer_id']:
             self.freezer_entry.insert(0, patient['freezer_id'])
+        else:
+            next_id = self.generate_freeze_id(self.study_optionmenu.get())
+            if next_id:
+                self.freezer_entry.insert(0, next_id)
 
         # Tube Type
         self.tube_rows = []
@@ -184,7 +189,6 @@ class NewAccessionFrame(ctk.CTkFrame):
         else:
             if hasattr(self, 'tech_other_entry'):
                 self.tech_other_entry.destroy()
-        
 
     def add_new_tech(self, event=None):
         if event is None:
@@ -210,7 +214,6 @@ class NewAccessionFrame(ctk.CTkFrame):
         if "Other" in tube_names:
             tube_names.remove("Other")
         return tube_names + ["Other"]
-
    
     def on_tube_selected(self, choice, row):
         row_idx = row - 7
@@ -351,6 +354,11 @@ class NewAccessionFrame(ctk.CTkFrame):
         self.new_freezer_id_entry = ctk.CTkEntry(self.accession_frame, width=200, placeholder_text="Freezer ID")
         self.new_freezer_id_entry.grid(row=2, column=1, pady=8, padx=10, sticky="w")
 
+        # Auto-generate next freezer ID
+        next_id = self.generate_freeze_id(self.study_optionmenu.get())
+        if next_id:
+            self.new_freezer_id_entry.insert(0, next_id)
+
         # CCF Number
         self.new_ccf_num_label = ctk.CTkLabel(self.accession_frame, text="CCF Number", wraplength=600, anchor="w")
         self.new_ccf_num_label.grid(row=3, column=0, columnspan=6, pady=8, padx=10, sticky="ew")
@@ -470,7 +478,40 @@ class NewAccessionFrame(ctk.CTkFrame):
         if choice == "Add New Study":
             AddStudyDialog(self, on_save=self.on_patient_form_study_saved)
 
+        else:
+            next_id = self.generate_freeze_id(choice)
+            if next_id and hasattr(self, 'new_freezer_id_entry'):
+                self.new_freezer_id_entry.delete(0, "end")
+                self.new_freezer_id_entry.insert(0, next_id)
+
     def on_patient_form_study_saved(self, study_name):
         self.studies = self.load_studies()
         self.new_study_optionmenu.configure(values=self.studies)
         self.new_study_optionmenu.set(study_name)
+
+    def generate_freeze_id(self, study_name):
+        study = None
+        if study_name and study_name != "Unknown/Pending":
+            conn = get_db_connection(db_path)
+            study = conn.execute(
+                "SELECT * FROM studies WHERE study_name = ?", 
+                (study_name,)).fetchone()
+            conn.close()
+        if study:
+            conn = get_db_connection(db_path)
+            max_freezer = conn.execute("""
+                                        SELECT MAX(e.freezer_id)
+                                        FROM enrollments e
+                                        JOIN studies s ON e.study_id = s.study_id
+                                        WHERE study_name = ?
+                                        AND e.freezer_id LIKE ?
+                                       """, (study_name, f"{study['study_prefix']}{datetime.now().strftime('%y')}%")).fetchone()
+            conn.close()
+            if max_freezer[0]:
+                last_seq = int(max_freezer[0].split(" ")[-1])
+                next_seq = str(last_seq + 1).zfill(3)
+            else:
+                next_seq = "001"
+            next_freezer_id = f"{study['study_prefix']}{datetime.now().strftime('%y')} {next_seq}"
+            return next_freezer_id
+        return None
