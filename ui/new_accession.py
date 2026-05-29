@@ -43,15 +43,15 @@ class NewAccessionFrame(ctk.CTkFrame):
         self.study_label = ctk.CTkLabel(self, text="Select Study")
         self.study_label.grid(row=1, column=3, pady=8, padx=10, sticky="e")
         self.study_optionmenu = ctk.CTkComboBox(self, values=self.studies, command=self.on_study_selected)
-        self.study_optionmenu.grid(row=1, column=4, pady=8, padx=10, sticky="w")
+        self.study_optionmenu.grid(row=1, column=6, pady=8, padx=10, sticky="w")
 
         # Search results 
-        self.results_frame = ctk.CTkFrame(self, height=150, width=400)
-        self.results_frame.grid(row=3, column=0, columnspan=4, pady=12, padx=10, sticky="ew")
+        self.results_frame = ctk.CTkScrollableFrame(self, height=150)
+        self.results_frame.grid(row=3, column=0, columnspan=8, pady=12, padx=4, sticky="ew")
 
 
-        self.accession_frame = ctk.CTkFrame(self)
-        self.accession_frame.grid(row=6, column=0, columnspan=6, pady=12, padx=10, sticky="ew")
+        self.accession_frame = ctk.CTkScrollableFrame(self)
+        self.accession_frame.grid(row=6, column=0, columnspan=8, pady=12, padx=4, sticky="ew")
         self.accession_frame.columnconfigure(0, weight=1)
         self.accession_frame.columnconfigure(1, weight=1)
 
